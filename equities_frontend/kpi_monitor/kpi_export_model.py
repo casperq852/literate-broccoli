@@ -214,7 +214,7 @@ def _short_period(period_end: str) -> str:
     return date.fromisoformat(period_end).strftime("%b %y")
 
 
-def _axis_label(value: float, _position: int) -> str:
+def _axis_label(value: float, _position: float) -> str:
     return f"{value:,.0f}" if abs(value) >= 100 or value == round(value) else f"{value:,.1f}"  # noqa: PLR2004
 
 

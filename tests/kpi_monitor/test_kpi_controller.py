@@ -81,7 +81,7 @@ def test_analyze_returns_none_without_model_data(monkeypatch) -> None:
 
 
 def test_saved_reviews_can_be_listed_loaded_and_are_pruned_by_config(monkeypatch) -> None:
-    from kpi_monitor import helpers as store  # noqa: PLC0415
+    from kpi_monitor import review_store as store  # noqa: PLC0415
 
     files: dict[tuple[str, str], dict] = {}
 
