@@ -71,7 +71,7 @@ def test_analyze_builds_prompt_from_model_and_documents(monkeypatch) -> None:
     assert len(analysis.documents) == 2  # duplicates across queries collapse, capped at max_documents
     assert analysis.review.findings[0].document_refs == (1,)
     user_prompt = client.messages[1]["content"]
-    assert "2025-03-31=90.00" in user_prompt and "QoQ -10.0%" in user_prompt
+    assert "2025-03-31=90" in user_prompt and "QoQ -10.0%" in user_prompt
     assert "Margins were pressured by pricing." in user_prompt and "pricing" in user_prompt
 
 

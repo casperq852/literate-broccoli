@@ -12,11 +12,12 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import Any
 
 from dcf import dcf_parsing_model
 from kpi_monitor import helpers as store
+from kpi_monitor import kpi_export_model as export_model
 from kpi_monitor import kpi_model as model
 from kpi_monitor.kpi_model import KpiAnalysis, SourceFile
 from search import search_model
@@ -181,6 +182,12 @@ class KpiController:
             )
             for index, chunk in enumerate(documents, start=1)
         }
+
+    def build_report(self, analysis: KpiAnalysis, ticker: str, company: str) -> bytes:
+        """Build the shareable Word report for a review (fresh or reopened)."""
+        return export_model.build_report(
+            analysis, company, ticker, self.source_labels(analysis.documents), date.today().isoformat()
+        )
 
     # ── sources ────────────────────────────────────────────────────────────────
 

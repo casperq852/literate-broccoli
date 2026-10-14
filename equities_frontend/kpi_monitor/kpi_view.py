@@ -24,6 +24,7 @@ from companies.company_controller import CompanyController
 from helpers import datalake_account, download_from_datalake, hide_research_notes
 from kpi_monitor import kpi_model as model
 from kpi_monitor.kpi_controller import KpiController
+from kpi_monitor.kpi_export_model import DOCX_MIME
 from kpi_monitor.kpi_model import KpiAnalysis, SourceFile
 from search.search_model import ALL_DOCUMENT_TYPES, RESEARCH_NOTE_DOC_TYPE
 
@@ -231,6 +232,7 @@ def _render_analysis(ticker: str, company_name: str, analysis: KpiAnalysis, cont
     )
     if not analysis.documents:
         st.info("No transcripts or other documents are indexed for this company, so the review rests on the model alone.")
+    _render_export(ticker, company_name, analysis, controller, source_labels)
     if review.summary:
         st.markdown(_escape_currency(review.summary))
     if not review.findings:
@@ -258,13 +260,39 @@ def _render_analysis(ticker: str, company_name: str, analysis: KpiAnalysis, cont
                 st.markdown(f"**[{index}] {source_labels[index]}**")
                 st.caption(_escape_currency(chunk.content[:600]) + ("…" if len(chunk.content) > 600 else ""))
 
-    st.download_button(
-        "Download review (Markdown)",
-        data=model.review_to_markdown(company_name, analysis.as_of, review, source_labels),
-        file_name=f"kpi_review_{ticker}_{analysis.as_of}.md",
+
+def _render_export(
+    ticker: str, company_name: str, analysis: KpiAnalysis, controller: KpiController, source_labels: dict[int, str]
+) -> None:
+    """Export the review: a Word report (built on request, since it draws charts) or plain Markdown."""
+    docx_key = f"kpi_docx_{ticker}_{analysis.created_at}"
+    word_col, markdown_col, _ = st.columns([2, 2, 4])
+    if docx_key in st.session_state:
+        word_col.download_button(
+            "Download Word report",
+            data=st.session_state[docx_key],
+            file_name=model.report_filename(ticker, analysis.as_of, "docx"),
+            mime=DOCX_MIME,
+            icon=":material/description:",
+            type="primary",
+            key=f"{docx_key}_dl",
+        )
+    elif word_col.button("Prepare Word report", icon=":material/description:", key=f"{docx_key}_build"):
+        try:
+            with st.spinner("Building the report..."):
+                st.session_state[docx_key] = controller.build_report(analysis, ticker, company_name)
+        except Exception as error:
+            logger.exception("Could not build the KPI report for %s", ticker)
+            st.error(f"Could not build the report: {error}")
+        else:
+            st.rerun()
+    markdown_col.download_button(
+        "Markdown",
+        data=model.review_to_markdown(company_name, analysis.as_of, analysis.review, source_labels),
+        file_name=model.report_filename(ticker, analysis.as_of, "md"),
         mime="text/markdown",
         icon=":material/download:",
-        key=f"kpi_dl_{ticker}",
+        key=f"kpi_md_{ticker}_{analysis.created_at}",
     )
 
 

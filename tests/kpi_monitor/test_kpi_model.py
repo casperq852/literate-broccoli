@@ -96,8 +96,8 @@ class TestFormatting:
         records = [_rec("Revenue", p, v) for p, v in zip(QUARTERS, [100, 110, 120, 130, 143], strict=False)]
         records.append(_rec("Revenue", "2025-06-30", 150.0, est=True))
         line = format_series_line(build_series(records)[0])
-        assert line.startswith("- Revenue [EUR Millions]: 2024-03-31=100.00")
-        assert "2025-06-30e=150.00" in line
+        assert line.startswith("- Revenue [EUR Millions]: 2024-03-31=100")
+        assert "2025-06-30e=150" in line
         assert "QoQ +10.0%" in line and "YoY +43.0%" in line
         assert "4 consecutive increases" in line
 

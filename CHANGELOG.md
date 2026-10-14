@@ -8,10 +8,12 @@ All notable changes to this project are recorded in this file. The format is bas
 
 - KPI Monitor tab on the company detail page: upload a Bloomberg model, earnings transcripts and other documents, and get an LLM review of which metrics changed significantly or look concerning, linked to management commentary. New `kpi_monitor` package, `configs/kpi_monitor_content.yaml`, and an `equities.kpi_monitor` config block.
 - KPI reviews are saved per company to the Data Lake (`LLM/kpi-monitor/`) and can be reopened from the tab, including the figures, document passages, focus note and added files.
+- Word (.docx) export of a KPI review: title block, summary, at-a-glance table, one section per finding with a trend chart and the underlying figures, sources, and branded header and footer.
 
 ### Changed
 
 - `dcf_parsing_model.ParsedRecord` now carries the source `document_date`.
+- KPI metric values are shown without decimals when whole, and with a consistent number of decimals within each metric.
 
 ## [0.0.1] - 2026-08-07
 

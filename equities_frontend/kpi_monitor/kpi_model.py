@@ -221,8 +221,16 @@ def select_series(series_list: list[KpiSeries], max_series: int) -> tuple[list[K
 # ── prompt text ─────────────────────────────────────────────────────────────────
 
 
-def _fmt(value: float) -> str:
-    return f"{value:,.0f}" if abs(value) >= _LARGE_VALUE else f"{value:,.2f}"
+def format_value(value: float, decimals: int = 0) -> str:
+    """Format a metric value; large values (1,000 and up) never show decimals."""
+    return f"{value:,.{0 if abs(value) >= _LARGE_VALUE else decimals}f}"
+
+
+def series_decimals(series: KpiSeries) -> int:
+    """Decimals to show for every value of a series: 2 if any value is fractional (and below 1,000), else 0."""
+    values = [point.value for point in series.points]
+    values += [point.prior_estimate for point in series.points if point.prior_estimate is not None]
+    return 2 if any(v != round(v) and abs(v) < _LARGE_VALUE for v in values) else 0
 
 
 def _fmt_change(label: str, relative: float | None, absolute: float | None, *, ratio_like: bool) -> str | None:
@@ -235,7 +243,10 @@ def _fmt_change(label: str, relative: float | None, absolute: float | None, *, r
 
 def format_series_line(series: KpiSeries) -> str:
     """Render one series as a single prompt line: values by period end date, then its computed moves."""
-    values = ", ".join(f"{p.period_end}{'e' if p.is_estimate else ''}={_fmt(p.value)}" for p in series.points)
+    decimals = series_decimals(series)
+    values = ", ".join(
+        f"{p.period_end}{'e' if p.is_estimate else ''}={format_value(p.value, decimals)}" for p in series.points
+    )
     unit = " ".join(part for part in (series.currency, series.unit) if part)
     header = f"- {series.metric}" + (f" [{unit}]" if unit and not series.ratio_like else "")
 
@@ -393,6 +404,11 @@ def classify_upload(filename: str) -> str:
     if name.startswith(MODL_FILENAME_PREFIX) and name.lower().endswith(".xlsx"):
         return "financial_model"
     return "document"
+
+
+def report_filename(ticker: str, as_of: str, extension: str) -> str:
+    """File name for an exported review, e.g. ``KPI_review_asml_2025-09-30.docx``."""
+    return f"KPI_review_{storage_folder(ticker)}_{as_of}.{extension}"
 
 
 def review_to_markdown(company: str, as_of: str, review: KpiReview, source_labels: dict[int, str]) -> str:
