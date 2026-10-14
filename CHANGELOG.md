@@ -10,6 +10,11 @@ All notable changes to this project are recorded in this file. The format is bas
 - KPI reviews are saved per company to the Data Lake (`LLM/kpi-monitor/`) and can be reopened from the tab, including the figures, document passages, focus note and added files.
 - Word (.docx) export of a KPI review: title block, summary, at-a-glance table, one section per finding with a trend chart and the underlying figures, sources, and branded header and footer.
 
+### Fixed
+
+- `search_model.retrieve_financial_model_bulk` filtered the index's `companies` field (company names) by ticker, which never matches a model tagged with its ticker in `tickers`. It now matches `tickers`, and also `companies` by ticker or company name. This is the lookup behind the KPI Monitor, the DCF Model Builder and the company Financials tab.
+- KPI Monitor: **Run KPI review** now uploads and ingests any files still selected in the uploader first, instead of ignoring them, and says when the index has not caught up yet.
+
 ### Changed
 
 - `dcf_parsing_model.ParsedRecord` now carries the source `document_date`.

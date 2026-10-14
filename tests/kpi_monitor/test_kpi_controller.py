@@ -115,3 +115,10 @@ def test_saved_reviews_can_be_listed_loaded_and_are_pruned_by_config(monkeypatch
     assert reopened.sources == sources
     assert reopened.documents[0].content == "Call."
     assert ("brk-b", listed[0]) in files  # stored under a filesystem-safe company folder
+
+
+def test_review_looks_the_model_up_by_ticker_and_company_name(monkeypatch) -> None:
+    seen: list[tuple] = []
+    monkeypatch.setattr(search_model, "retrieve_financial_model_bulk", lambda *args: seen.append(args) or [])
+    kpi_controller.KpiController().analyze("ASML Holding N.V.", "ASML", CONFIG)
+    assert seen == [("idx", "ASML", 100, "ASML Holding N.V.")]

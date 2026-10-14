@@ -46,10 +46,12 @@ class KpiController:
 
     # ── data ───────────────────────────────────────────────────────────────────
 
-    def load_series(self, ticker: str, config: dict[str, Any]) -> list[model.KpiSeries]:
+    def load_series(self, ticker: str, config: dict[str, Any], company: str = "") -> list[model.KpiSeries]:
         """Retrieve and group this company's whole ingested model into per-metric series."""
         kpi_cfg = config["kpi_monitor"]
-        chunks = search_model.retrieve_financial_model_bulk(config["index_name"], ticker, kpi_cfg["max_bulk_records"])
+        chunks = search_model.retrieve_financial_model_bulk(
+            config["index_name"], ticker, kpi_cfg["max_bulk_records"], company or None
+        )
         records = dcf_parsing_model.parse_chunks(chunks)
         return model.build_series(records, kpi_cfg["max_reported_periods"], kpi_cfg["max_estimate_periods"])
 
@@ -127,7 +129,9 @@ class KpiController:
         Raises:
             ValueError: If the LLM's response could not be parsed into a review.
         """
-        series, omitted = model.select_series(self.load_series(ticker, config), config["kpi_monitor"]["max_series"])
+        series, omitted = model.select_series(
+            self.load_series(ticker, config, company), config["kpi_monitor"]["max_series"]
+        )
         if not series:
             return None
         as_of = model.latest_reported_period(series) or "unknown"
