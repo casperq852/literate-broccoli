@@ -517,7 +517,15 @@ def analysis_from_dict(data: dict[str, Any]) -> KpiAnalysis:
     """Rebuild an analysis from ``analysis_to_dict`` output."""
     review = data["review"]
     findings = tuple(
-        KpiFinding(**{**finding, "document_refs": tuple(finding.get("document_refs", ()))})
+        KpiFinding(
+            metric=finding["metric"],
+            assessment=finding.get("assessment", "neutral"),
+            headline=finding.get("headline", ""),
+            commentary=finding.get("commentary", ""),
+            evidence=finding.get("evidence", ""),
+            document_refs=tuple(finding.get("document_refs", ())),
+            follow_up=finding.get("follow_up", ""),
+        )
         for finding in review.get("findings", [])
     )
     series = [
@@ -531,7 +539,22 @@ def analysis_from_dict(data: dict[str, Any]) -> KpiAnalysis:
         for item in data.get("series", [])
     ]
     documents = [
-        Chunk(**{**chunk, "companies": tuple(chunk.get("companies", ()))}) for chunk in data.get("documents", [])
+        Chunk(
+            content=chunk["content"],
+            metric=chunk.get("metric"),
+            period_label=chunk.get("period_label"),
+            period_end_date=chunk.get("period_end_date"),
+            is_estimate=chunk.get("is_estimate"),
+            document_type=chunk.get("document_type"),
+            document_date=chunk.get("document_date"),
+            publisher=chunk.get("publisher"),
+            score=chunk.get("score", 0.0),
+            segment=chunk.get("segment"),
+            currency=chunk.get("currency"),
+            unit=chunk.get("unit"),
+            companies=tuple(chunk.get("companies", ())),
+        )
+        for chunk in data.get("documents", [])
     ]
     return KpiAnalysis(
         review=KpiReview(summary=review.get("summary", ""), findings=findings),

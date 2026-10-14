@@ -229,10 +229,12 @@ def _ingest_files(
         list[UploadOutcome]: One outcome per file.
     """
     status = st.empty()
+
+    def show_progress(name: str) -> None:
+        status.info(f"Ingesting {name}...")
+
     outcomes = controller.upload_sources(
-        [(file.name, file.getvalue()) for file in files],
-        config,
-        on_progress=lambda name: status.info(f"Ingesting {name}..."),
+        [(file.name, file.getvalue()) for file in files], config, on_progress=show_progress
     )
     status.empty()
     for outcome in outcomes:

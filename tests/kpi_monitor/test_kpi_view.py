@@ -5,6 +5,7 @@ Regression guard for: files selected in the uploader but never ingested made
 "Run KPI review" report "no financial model data", with no hint why. The
 controller is faked, so these need neither Azure nor an index.
 """
+
 # ruff: noqa: PLC0415
 
 from __future__ import annotations
