@@ -1,0 +1,34 @@
+name: $(SourceBranchName).$(Build.BuildId)
+
+resources:
+  repositories:
+    - repository: templates
+      type: git
+      name: Vermogensbeheer.Innersource/templates_pipelines
+      ref: refs/heads/production
+
+trigger:
+  - production
+
+pool: "asr-shared-p-linux"
+
+variables:
+  - name: deployTarget
+    ${{ if eq(variables['Build.SourceBranchName'], 'production') }}:
+      value: p
+    ${{ if eq(variables['Build.SourceBranchName'], 'acceptance') }}:
+      value: a
+    ${{ if eq(variables['Build.SourceBranchName'], 'development') }}:
+      value: o
+  - template: pipeline_variables.yaml
+  - group: avb_${{ variables.deployTarget }}
+
+stages:
+  - template: stages/BuildAndDeployToAcr.yaml@templates
+    parameters:
+      deployTarget: ${{ variables.deployTarget }}
+      resourceGroup: we-avba-${{ variables.deployTarget }}-wapp-rg
+      webappName: weavba${{ variables.deployTarget }}wappaandelenaidashboard01
+      imageName: $(imageName)
+      dockerFilePath: "Dockerfile"
+      teamName: "ov"

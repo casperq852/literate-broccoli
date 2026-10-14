@@ -1,0 +1,156 @@
+[project]
+name = "equities_rag_pipeline"
+version = "0.0.1"
+description = "Equities Desk research RAG pipeline utilizing AVB AI Toolkit"
+readme          = "README.md"
+keywords        = ["Aandelen", "Equities RAG", "Equities Pipeline"]
+requires-python = ">=3.10, <3.11"
+dependencies = [
+    "avb-llm>=0.0.22",
+    "avb-search>=0.0.10",
+    "bcrypt>=5.0.0",
+    "matplotlib>=3.7.0",
+    "pandas>=2.0.0",
+    "plotly>=5.0.0",
+    "polars>=1.0.0",
+    "pyarrow>=14.0.0",
+    "pyyaml>=6.0",
+    "rapidfuzz>=3.0.0",
+    "streamlit>=1.58.0",
+    "xlsxwriter>=3.0.0",
+]
+
+[dependency-groups]
+dev = [
+  "ipykernel>=6.29.5",
+  "ty>=0.0.29",
+  "black>=24.10.0",
+  "ruff>=0.15.9",
+  "pre-commit>=3.8.0",
+  "codespell>=2.4.2",
+  "pytest>=7.4.4",
+]
+
+[tool.uv]
+default-groups = ["dev"]
+prerelease = "allow"
+environments = ["sys_platform == 'linux'"]
+
+# if you need private indexes for certain packages, pin them here:
+[tool.uv.sources]
+my-private-pkg = { index = "azure-vermogensbeheer" }
+
+[[tool.uv.index]]
+name = "azure"
+url  = "https://pkgs.dev.azure.com/asr-nl/ASR.Artifacts/_packaging/ASR_Python_Packages/pypi/simple/"
+
+[[tool.uv.index]]
+name = "azure-vermogensbeheer"
+url  = "https://pkgs.dev.azure.com/asr-nl/ASR.Artifacts/_packaging/Vermogensbeheer_Feed/pypi/simple/"
+
+
+[tool.black]
+line-length   = 122
+force-exclude = '(\.yaml|\.toml|\.lock\.md)$'
+
+[tool.ruff]
+line-length = 122
+lint.select = [
+    "E",
+    "F",
+    "I",
+    "PD",
+    "PLC",
+    "PLE",
+    "PLR",
+    "PLW",
+    "Q",
+    "S",
+    "SIM",
+    "UP",
+    "W",
+]
+lint.ignore = [
+    "E501",    # Line too long
+    "S101",    # Use of assert detected
+    "PLR2004", # Magic value used in comparison
+    "PLR0913", # Too many arguments in function definition
+    "PLR0917", # Too many positional arguments (same concern as PLR0913, newer rule code)
+    "PLR0912", # Too many branches
+    "PLR0915", # Too many statements
+    "PLW2901", # Loop variable overwritten by assignment
+    "S301",    # Pickle and modules that wrap it
+    "PD013",   # Use of .stack attribute in pandas
+]
+exclude = [
+    "conftest.py",
+    "*.yaml",
+    "*.yml",
+    "*.toml",
+    "*.lock",
+    "*.pdf",
+    "*.xlsx",
+    "Dockerfile",
+    "Dockerfile.*",
+    "equities_frontend/assets",
+    "avb_search/",
+    # Vendored from the colleague's Portfolio Dashboard, kept internally
+    # unmodified -- chat_context_model.py (our own file, same package)
+    # stays linted; only their original subpackages/entry points are excluded.
+    "equities_frontend/portfolio_dashboard/dashboard",
+    "equities_frontend/portfolio_dashboard/datalake",
+    "equities_frontend/portfolio_dashboard/optimizer",
+    "equities_frontend/portfolio_dashboard/reports",
+    "equities_frontend/portfolio_dashboard/config",
+    "equities_frontend/portfolio_dashboard/assets",
+    "equities_frontend/portfolio_dashboard/app.py",
+    "equities_frontend/portfolio_dashboard/main.py",
+    "equities_frontend/portfolio_dashboard/__main__.py",
+]
+force-exclude = true
+
+[tool.ruff.lint.isort]
+known-first-party = ["admin", "auth", "chat", "companies", "dcf", "index", "investment_case", "upload", "database", "search", "helpers", "vectorization", "avb_search", "avb_core"]
+
+[tool.isort]
+profile           = "black"
+line_length       = 122
+skip_gitignore    = true
+combine_as_imports = true
+
+[tool.codespell]
+quiet-level = 2
+skip        = "./tests,README.md,.git,*.css,*.csv,*.html,*.ini,*.ipynb,*.js,*.json,*.lock,*.scss,*.txt,*.yaml,*.toml,*.yml,*.pdf,*.xlsx,Dockerfile,Dockerfile.*,equities_frontend/portfolio_dashboard/dashboard/*,equities_frontend/portfolio_dashboard/datalake/*,equities_frontend/portfolio_dashboard/optimizer/*,equities_frontend/portfolio_dashboard/reports/*,equities_frontend/portfolio_dashboard/config/*,equities_frontend/portfolio_dashboard/assets/*"
+ignore-words-list = "als,te,wel,wil,mis,alle,stap,juni,juli,oktober,categorie,ba,nin"
+
+[tool.pytest.ini_options]
+pythonpath   = ["avb_llm"]
+filterwarnings = ["ignore::pytest.PytestAssertRewriteWarning:"]
+
+[tool.ty.src]
+include = ["equities_frontend"]
+exclude = [
+    "pyproject.toml",
+    "uv.lock",
+    "README.md",
+    "Dockerfile",
+    "docker-compose.yml",
+    "equities_frontend/assets",
+    # Vendored from the colleague's Portfolio Dashboard, kept internally
+    # unmodified -- their own code, their own type-checking discipline.
+    # chat_context_model.py (our own new file, in this same package) stays
+    # in scope; only their original subpackages/entry points are excluded.
+    "equities_frontend/portfolio_dashboard/dashboard",
+    "equities_frontend/portfolio_dashboard/datalake",
+    "equities_frontend/portfolio_dashboard/optimizer",
+    "equities_frontend/portfolio_dashboard/reports",
+    "equities_frontend/portfolio_dashboard/config",
+    "equities_frontend/portfolio_dashboard/assets",
+    "equities_frontend/portfolio_dashboard/app.py",
+    "equities_frontend/portfolio_dashboard/main.py",
+    "equities_frontend/portfolio_dashboard/__main__.py",
+]
+
+[tool.ty.rules]
+unresolved-import = "ignore"
+unresolved-reference = "ignore"
