@@ -12,14 +12,15 @@ from __future__ import annotations
 
 import json
 import re
-from dataclasses import dataclass
-from datetime import date
+from dataclasses import asdict, dataclass, field
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
 import yaml
 
 from dcf.dcf_parsing_model import ParsedRecord
+from search.search_model import Chunk
 from vectorization.financial_model.financial_model_controller import RATIO_TOKENS
 
 DEFAULT_CONTENT_PATH: Path = Path(__file__).resolve().parent.parent / "configs" / "kpi_monitor_content.yaml"
@@ -413,3 +414,116 @@ def review_to_markdown(company: str, as_of: str, review: KpiReview, source_label
         lines.append("## Sources")
         lines += [f"[{index}] {label}" for index, label in sorted(source_labels.items())]
     return "\n".join(lines)
+
+
+# ── saved reviews ───────────────────────────────────────────────────────────────
+
+
+@dataclass(frozen=True)
+class SourceFile:
+    """A file the analyst added (uploaded and ingested) while preparing a review."""
+
+    filename: str
+    kind: str  # 'financial_model' | 'document'
+    path: str  # Data Lake path, so the file can be fetched again
+    segments: int = 0
+
+
+@dataclass(frozen=True)
+class KpiAnalysis:
+    """
+    A finished review plus everything it was based on.
+
+    Holds the model's own figures and the document passages the LLM saw, so
+    the view can show the evidence next to each claim -- and so a saved review
+    can be reopened later exactly as it was, without the live index.
+    """
+
+    review: KpiReview
+    as_of: str
+    series: list[KpiSeries]
+    documents: list[Chunk]
+    omitted_series: int = 0
+    focus_notes: str = ""
+    sources: tuple[SourceFile, ...] = field(default_factory=tuple)
+    created_at: str = ""  # ISO-8601 UTC; empty until the review is made
+
+
+_SCHEMA_VERSION = 1
+_ID_TIME_FORMAT = "%Y%m%dT%H%M%SZ"
+_ID_SEPARATOR = "__"
+
+
+def storage_folder(ticker: str) -> str:
+    """A filesystem-safe folder name for a ticker (``NOVO-B DC`` -> ``novo-b-dc``)."""
+    return re.sub(r"[^a-z0-9]+", "-", ticker.lower()).strip("-") or "unknown"
+
+
+def make_review_id(created_at: str, as_of: str) -> str:
+    """Build a sortable id carrying the creation time and latest period, so listings need no file reads."""
+    stamp = datetime.fromisoformat(created_at).strftime(_ID_TIME_FORMAT)
+    return f"{stamp}{_ID_SEPARATOR}{as_of}"
+
+
+def review_label(review_id: str) -> str:
+    """Human-readable label for a saved review id, e.g. ``2026-10-14 08:55 UTC · period 2025-03-31``."""
+    stamp, _, as_of = review_id.partition(_ID_SEPARATOR)
+    try:
+        when = datetime.strptime(stamp, _ID_TIME_FORMAT).strftime("%Y-%m-%d %H:%M UTC")  # noqa: DTZ007
+    except ValueError:
+        return review_id
+    return f"{when} · period {as_of}" if as_of else when
+
+
+def ids_to_prune(review_ids: list[str], keep: int) -> list[str]:
+    """The oldest ids beyond the ``keep`` newest (ids sort chronologically)."""
+    return sorted(review_ids, reverse=True)[keep:]
+
+
+def analysis_to_dict(analysis: KpiAnalysis, ticker: str, company: str) -> dict[str, Any]:
+    """Flatten an analysis to JSON-safe data for storage."""
+    return {
+        "schema": _SCHEMA_VERSION,
+        "ticker": ticker,
+        "company": company,
+        "created_at": analysis.created_at,
+        "as_of": analysis.as_of,
+        "focus_notes": analysis.focus_notes,
+        "omitted_series": analysis.omitted_series,
+        "review": asdict(analysis.review),
+        "series": [asdict(series) for series in analysis.series],
+        "documents": [asdict(chunk) for chunk in analysis.documents],
+        "sources": [asdict(source) for source in analysis.sources],
+    }
+
+
+def analysis_from_dict(data: dict[str, Any]) -> KpiAnalysis:
+    """Rebuild an analysis from ``analysis_to_dict`` output."""
+    review = data["review"]
+    findings = tuple(
+        KpiFinding(**{**finding, "document_refs": tuple(finding.get("document_refs", ()))})
+        for finding in review.get("findings", [])
+    )
+    series = [
+        KpiSeries(
+            metric=item["metric"],
+            segment=item.get("segment"),
+            currency=item.get("currency"),
+            unit=item.get("unit"),
+            points=tuple(KpiPoint(**point) for point in item.get("points", [])),
+        )
+        for item in data.get("series", [])
+    ]
+    documents = [
+        Chunk(**{**chunk, "companies": tuple(chunk.get("companies", ()))}) for chunk in data.get("documents", [])
+    ]
+    return KpiAnalysis(
+        review=KpiReview(summary=review.get("summary", ""), findings=findings),
+        as_of=data.get("as_of", "unknown"),
+        series=series,
+        documents=documents,
+        omitted_series=data.get("omitted_series", 0),
+        focus_notes=data.get("focus_notes", ""),
+        sources=tuple(SourceFile(**source) for source in data.get("sources", [])),
+        created_at=data.get("created_at", ""),
+    )

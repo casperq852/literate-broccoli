@@ -21,9 +21,10 @@ import streamlit as st
 from streamlit.logger import get_logger
 
 from companies.company_controller import CompanyController
-from helpers import hide_research_notes
+from helpers import datalake_account, download_from_datalake, hide_research_notes
 from kpi_monitor import kpi_model as model
-from kpi_monitor.kpi_controller import KpiAnalysis, KpiController
+from kpi_monitor.kpi_controller import KpiController
+from kpi_monitor.kpi_model import KpiAnalysis, SourceFile
 from search.search_model import ALL_DOCUMENT_TYPES, RESEARCH_NOTE_DOC_TYPE
 
 logger: Logger = get_logger(name=__name__)
@@ -53,12 +54,15 @@ def render(ticker: str, company: dict, company_controller: CompanyController, co
     """
     controller = KpiController()
     result_key = f"kpi_analysis_{ticker}"
+    sources_key = f"kpi_new_sources_{ticker}"
+    account = datalake_account()
 
     st.caption(
         "Add the latest Bloomberg model (named `MODL_*.xlsx`) together with earnings transcripts and other "
         "documents, then run the review. The model picks the KPIs that matter for this company right now, "
         "judges which moves are significant, and ties them to management's commentary."
     )
+    _render_saved_reviews(ticker, controller, config, account)
     _render_sources(ticker, controller, company_controller, config)
 
     st.divider()
@@ -77,6 +81,7 @@ def render(ticker: str, company: dict, company_controller: CompanyController, co
                     config=config,
                     focus_notes=focus_notes,
                     document_types=document_types,
+                    sources=tuple(st.session_state.get(sources_key, [])),
                 )
         except Exception as error:
             logger.exception("KPI review failed for %s", ticker)
@@ -87,10 +92,78 @@ def render(ticker: str, company: dict, company_controller: CompanyController, co
             st.session_state.pop(result_key, None)
             return
         st.session_state[result_key] = analysis
+        st.session_state[sources_key] = []
+        try:
+            controller.save_review(analysis, ticker, company["display_name"], config, account)
+            st.toast("Review saved. Reopen it any time from Saved reviews.")
+        except Exception:
+            logger.exception("Could not save the KPI review for %s", ticker)
+            st.warning("The review is shown below but could not be saved to the Data Lake.")
 
     analysis: KpiAnalysis | None = st.session_state.get(result_key)
     if analysis is not None:
         _render_analysis(ticker, company["display_name"], analysis, controller)
+
+
+# ── saved reviews ────────────────────────────────────────────────────────────────
+
+
+def _load_saved(ticker: str, controller: KpiController, config: dict[str, Any], account: str) -> None:
+    """Button callback: reopen the selected saved review, restoring its focus note too."""
+    review_id = st.session_state.get(f"kpi_saved_pick_{ticker}")
+    if not review_id:
+        return
+    try:
+        analysis = controller.load_review(ticker, review_id, config, account)
+    except Exception as error:
+        logger.exception("Could not load KPI review %s for %s", review_id, ticker)
+        st.session_state[f"kpi_load_error_{ticker}"] = str(error)
+        return
+    st.session_state.pop(f"kpi_load_error_{ticker}", None)
+    st.session_state[f"kpi_analysis_{ticker}"] = analysis
+    st.session_state[f"kpi_focus_{ticker}"] = analysis.focus_notes
+
+
+def _delete_saved(ticker: str, controller: KpiController, config: dict[str, Any], account: str) -> None:
+    """Button callback: delete the selected saved review."""
+    review_id = st.session_state.get(f"kpi_saved_pick_{ticker}")
+    if not review_id:
+        return
+    try:
+        controller.delete_review(ticker, review_id, config, account)
+    except Exception as error:
+        logger.exception("Could not delete KPI review %s for %s", review_id, ticker)
+        st.session_state[f"kpi_load_error_{ticker}"] = f"Could not delete: {error}"
+
+
+def _render_saved_reviews(ticker: str, controller: KpiController, config: dict[str, Any], account: str) -> None:
+    review_ids = controller.list_reviews(ticker, config, account)
+    if not review_ids:
+        return
+    with st.expander(f"Saved reviews ({len(review_ids)})", expanded=False):
+        st.selectbox(
+            "Reopen a previous review for this company",
+            review_ids,
+            format_func=model.review_label,
+            key=f"kpi_saved_pick_{ticker}",
+        )
+        open_col, delete_col, _ = st.columns([1, 1, 4])
+        open_col.button(
+            "Open",
+            key=f"kpi_open_{ticker}",
+            on_click=_load_saved,
+            args=(ticker, controller, config, account),
+        )
+        with delete_col.popover("Delete"):
+            st.write("Delete this saved review? The uploaded files stay in the index.")
+            st.button(
+                "Confirm delete",
+                key=f"kpi_delete_{ticker}",
+                on_click=_delete_saved,
+                args=(ticker, controller, config, account),
+            )
+        if error := st.session_state.get(f"kpi_load_error_{ticker}"):
+            st.error(error)
 
 
 # ── sources ──────────────────────────────────────────────────────────────────────
@@ -127,6 +200,9 @@ def _render_sources(
                 st.error(f"**{outcome.filename}** failed: {outcome.error}")
             elif outcome.segments > 0:
                 st.success(f"Ingested **{outcome.filename}** as {outcome.segments:,} searchable chunks.")
+                st.session_state.setdefault(f"kpi_new_sources_{ticker}", []).append(
+                    SourceFile(outcome.filename, outcome.kind, outcome.path, outcome.segments)
+                )
             else:
                 st.warning(f"**{outcome.filename}** was uploaded but produced no searchable content.")
             for warning in outcome.warnings:
@@ -143,6 +219,11 @@ def _render_analysis(ticker: str, company_name: str, analysis: KpiAnalysis, cont
     source_labels = controller.source_labels(analysis.documents)
 
     st.subheader("Review")
+    if analysis.created_at:
+        st.caption(
+            f"Made {analysis.created_at[:16].replace('T', ' ')} UTC"
+            + (f" · focus: {analysis.focus_notes}" if analysis.focus_notes else "")
+        )
     st.caption(
         f"Latest reported period: **{analysis.as_of}** · {len(analysis.series)} metrics reviewed · "
         f"{len(analysis.documents)} document passages"
@@ -168,6 +249,9 @@ def _render_analysis(ticker: str, company_name: str, analysis: KpiAnalysis, cont
             if finding.document_refs:
                 st.caption("Sources: " + " · ".join(f"[{ref}] {source_labels[ref]}" for ref in finding.document_refs))
 
+    if analysis.sources:
+        _render_source_files(ticker, analysis)
+
     if analysis.documents:
         with st.expander("Document passages used"):
             for index, chunk in enumerate(analysis.documents, start=1):
@@ -182,6 +266,28 @@ def _render_analysis(ticker: str, company_name: str, analysis: KpiAnalysis, cont
         icon=":material/download:",
         key=f"kpi_dl_{ticker}",
     )
+
+
+def _render_source_files(ticker: str, analysis: KpiAnalysis) -> None:
+    """List the files added for this review, each fetchable from the Data Lake on demand."""
+    with st.expander(f"Files added for this review ({len(analysis.sources)})"):
+        for source in analysis.sources:
+            name_col, action_col = st.columns([4, 1])
+            kind = "model" if source.kind == "financial_model" else "document"
+            name_col.write(f"**{source.filename}** · {kind} · {source.segments:,} chunks")
+            cache_key = f"kpi_file_{ticker}_{source.path}"
+            if cache_key not in st.session_state:
+                if action_col.button("Fetch", key=f"{cache_key}_fetch"):
+                    try:
+                        st.session_state[cache_key] = download_from_datalake(datalake_account(), source.path)
+                        st.rerun()
+                    except Exception as error:
+                        logger.exception("Could not fetch %s", source.path)
+                        action_col.error(f"Not available: {error}")
+                continue
+            action_col.download_button(
+                "Download", st.session_state[cache_key], file_name=source.filename, key=f"{cache_key}_dl"
+            )
 
 
 def _render_series(metric: str, analysis: KpiAnalysis) -> None:

@@ -102,3 +102,4 @@ equities:
     max_series: 250             # metrics sent to the LLM; if a model has more, the biggest movers are kept
     queries_top_k: 8            # chunks retrieved per document query
     max_documents: 24           # numbered transcript/document passages sent to the LLM
+    max_saved_reviews: 10       # saved reviews kept per company; the oldest are pruned on save

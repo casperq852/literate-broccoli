@@ -12,25 +12,17 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from typing import Any
 
 from dcf import dcf_parsing_model
+from kpi_monitor import helpers as store
 from kpi_monitor import kpi_model as model
+from kpi_monitor.kpi_model import KpiAnalysis, SourceFile
 from search import search_model
 from search.search_model import Chunk
 
 logger = logging.getLogger(__name__)
-
-
-@dataclass(frozen=True)
-class KpiAnalysis:
-    """A finished review with the data it was based on, so the view can show the evidence next to each claim."""
-
-    review: model.KpiReview
-    as_of: str
-    series: list[model.KpiSeries]
-    documents: list[Chunk]
-    omitted_series: int = 0
 
 
 @dataclass(frozen=True)
@@ -40,6 +32,7 @@ class UploadOutcome:
     filename: str
     kind: str  # 'financial_model' | 'document'
     segments: int = 0
+    path: str = ""
     error: str | None = None
     warnings: list[str] = field(default_factory=list)
 
@@ -114,6 +107,7 @@ class KpiController:
         config: dict[str, Any],
         focus_notes: str = "",
         document_types: list[str] | None = None,
+        sources: tuple[SourceFile, ...] = (),
     ) -> KpiAnalysis | None:
         """
         Review this company's latest model against its transcripts and documents.
@@ -124,6 +118,7 @@ class KpiController:
             config (dict[str, Any]): The equities app config block.
             focus_notes (str): Optional free-text steer from the analyst.
             document_types (list[str] | None): Restrict document retrieval to these types.
+            sources (tuple[SourceFile, ...]): Files the analyst added since the previous review, recorded with this one.
 
         Returns:
             KpiAnalysis | None: None if the company has no usable model data.
@@ -163,7 +158,16 @@ class KpiController:
             logger.warning("KPI review for %s was not valid JSON: %.300s", ticker, raw)
             msg = "The model's response could not be read as a KPI review."
             raise ValueError(msg)
-        return KpiAnalysis(review=review, as_of=as_of, series=series, documents=documents, omitted_series=omitted)
+        return KpiAnalysis(
+            review=review,
+            as_of=as_of,
+            series=series,
+            documents=documents,
+            omitted_series=omitted,
+            focus_notes=focus_notes.strip(),
+            sources=sources,
+            created_at=datetime.now(timezone.utc).isoformat(),
+        )
 
     def source_labels(self, documents: list[Chunk]) -> dict[int, str]:
         """Number each document passage the way the prompt did, with a citation label."""
@@ -221,5 +225,42 @@ class KpiController:
                 logger.exception("KPI source upload failed for %s", filename)
                 outcomes.append(UploadOutcome(filename, kind, error=str(error), warnings=warnings))
                 continue
-            outcomes.append(UploadOutcome(filename, kind, segments=segments, warnings=warnings))
+            outcomes.append(UploadOutcome(filename, kind, segments=segments, path=dest_path, warnings=warnings))
         return outcomes
+
+    # ── saved reviews ──────────────────────────────────────────────────────────
+
+    def save_review(
+        self, analysis: KpiAnalysis, ticker: str, company: str, config: dict[str, Any], account_name: str
+    ) -> str:
+        """
+        Store a review (output, evidence, document passages, source files) in the Data Lake.
+
+        Keeps the newest ``kpi_monitor.max_saved_reviews`` per company.
+
+        Returns:
+            str: The saved review's id.
+        """
+        review_id = model.make_review_id(analysis.created_at, analysis.as_of)
+        store.save_review(
+            account_name=account_name,
+            filesystem_name=config["data_layer"],
+            folder=model.storage_folder(ticker),
+            review_id=review_id,
+            payload=model.analysis_to_dict(analysis, ticker, company),
+            keep=config["kpi_monitor"]["max_saved_reviews"],
+        )
+        return review_id
+
+    def list_reviews(self, ticker: str, config: dict[str, Any], account_name: str) -> list[str]:
+        """Saved review ids for a company, newest first (empty if none or the store is unreachable)."""
+        return store.list_reviews(account_name, config["data_layer"], model.storage_folder(ticker))
+
+    def load_review(self, ticker: str, review_id: str, config: dict[str, Any], account_name: str) -> KpiAnalysis:
+        """Reopen a saved review exactly as it was saved."""
+        data = store.load_review(account_name, config["data_layer"], model.storage_folder(ticker), review_id)
+        return model.analysis_from_dict(data)
+
+    def delete_review(self, ticker: str, review_id: str, config: dict[str, Any], account_name: str) -> None:
+        """Delete one saved review."""
+        store.delete_review(account_name, config["data_layer"], model.storage_folder(ticker), review_id)

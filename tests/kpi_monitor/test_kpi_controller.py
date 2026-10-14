@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 import json
 
 from kpi_monitor import kpi_controller
@@ -77,3 +78,40 @@ def test_analyze_builds_prompt_from_model_and_documents(monkeypatch) -> None:
 def test_analyze_returns_none_without_model_data(monkeypatch) -> None:
     monkeypatch.setattr(search_model, "retrieve_financial_model_bulk", lambda *_: [])
     assert kpi_controller.KpiController().analyze("Acme", "ACME", CONFIG) is None
+
+
+def test_saved_reviews_can_be_listed_loaded_and_are_pruned_by_config(monkeypatch) -> None:
+    from kpi_monitor import helpers as store  # noqa: PLC0415
+
+    files: dict[tuple[str, str], dict] = {}
+
+    def fake_save(*, folder, review_id, payload, keep, **_):
+        files[(folder, review_id)] = payload
+        for old in kpi_controller.model.ids_to_prune([r for f, r in files if f == folder], keep):
+            del files[(folder, old)]
+
+    monkeypatch.setattr(store, "save_review", fake_save)
+    monkeypatch.setattr(
+        store, "list_reviews", lambda _a, _fs, folder: sorted((r for f, r in files if f == folder), reverse=True)
+    )
+    monkeypatch.setattr(store, "load_review", lambda _a, _fs, folder, rid: files[(folder, rid)])
+    monkeypatch.setattr(search_model, "retrieve_financial_model_bulk", lambda *_: [_model_chunk("2025-03-31", "90.0")])
+    monkeypatch.setattr(search_model, "retrieve", lambda **_: [_doc("Call.", "2025-04-30")])
+    monkeypatch.setattr(search_model, "get_chat_client", lambda *_: _FakeClient())
+
+    cfg = {**CONFIG, "data_layer": "silver", "kpi_monitor": {**CONFIG["kpi_monitor"], "max_saved_reviews": 2}}
+    controller = kpi_controller.KpiController()
+    sources = (kpi_controller.model.SourceFile("MODL_ACME.xlsx", "financial_model", "p/MODL_ACME.xlsx", 5),)
+    saved_ids = []
+    for minute in range(3):
+        analysis = controller.analyze("Acme NV", "BRK/B", cfg, focus_notes=f"run {minute}", sources=sources)
+        analysis = dataclasses.replace(analysis, created_at=f"2026-10-14T08:0{minute}:00+00:00")
+        saved_ids.append(controller.save_review(analysis, "BRK/B", "Acme NV", cfg, "acct"))
+
+    listed = controller.list_reviews("BRK/B", cfg, "acct")
+    assert listed == [saved_ids[2], saved_ids[1]]  # oldest pruned, newest first
+    reopened = controller.load_review("BRK/B", listed[0], cfg, "acct")
+    assert reopened.focus_notes == "run 2"
+    assert reopened.sources == sources
+    assert reopened.documents[0].content == "Call."
+    assert ("brk-b", listed[0]) in files  # stored under a filesystem-safe company folder

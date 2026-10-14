@@ -7,6 +7,7 @@ All notable changes to this project are recorded in this file. The format is bas
 ### Added
 
 - KPI Monitor tab on the company detail page: upload a Bloomberg model, earnings transcripts and other documents, and get an LLM review of which metrics changed significantly or look concerning, linked to management commentary. New `kpi_monitor` package, `configs/kpi_monitor_content.yaml`, and an `equities.kpi_monitor` config block.
+- KPI reviews are saved per company to the Data Lake (`LLM/kpi-monitor/`) and can be reopened from the tab, including the figures, document passages, focus note and added files.
 
 ### Changed
 

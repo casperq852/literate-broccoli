@@ -6,18 +6,27 @@ import json
 
 from dcf.dcf_parsing_model import ParsedRecord
 from kpi_monitor.kpi_model import (
+    KpiAnalysis,
     KpiFinding,
     KpiReview,
+    SourceFile,
+    analysis_from_dict,
+    analysis_to_dict,
     build_series,
     classify_upload,
     compute_stats,
     format_series_line,
+    ids_to_prune,
     latest_reported_period,
+    make_review_id,
     parse_review,
+    review_label,
     review_to_markdown,
     select_series,
     series_for_metric,
+    storage_folder,
 )
+from search.search_model import Chunk  # noqa: E402
 
 
 def _rec(metric: str, period: str, value: float, *, est: bool = False, doc: str | None = None) -> ParsedRecord:
@@ -165,3 +174,60 @@ class TestHelpers:
         finding = KpiFinding("Revenue", "concerning", "Slowing", "Text.", "100 -> 90", (1,), "Ask why")
         text = review_to_markdown("ASML", "2025-03-31", KpiReview("Summary", (finding,)), {1: "Q1 call"})
         assert "[CONCERNING] Slowing" in text and "[1] Q1 call" in text
+
+
+class TestSavedReviews:
+    def _analysis(self) -> KpiAnalysis:
+        series = _series("Gross Margin %", [41.0, 40.0, 40.5, 39.0, 38.0])
+        doc = Chunk(
+            "CFO: mix.",
+            "m",
+            "Q1",
+            "2025-03-31",
+            "reported",
+            "earnings_transcript",
+            "2025-04-30",
+            "Co",
+            0.5,
+            companies=("ACME",),
+        )
+        finding = KpiFinding("Gross Margin %", "concerning", "Down", "Text.", "40 -> 38", (1,), "Why?")
+        return KpiAnalysis(
+            review=KpiReview("Summary", (finding,)),
+            as_of="2025-03-31",
+            series=[series],
+            documents=[doc],
+            omitted_series=2,
+            focus_notes="inventory",
+            sources=(SourceFile("MODL_ACME.xlsx", "financial_model", "LLM/indices/x/MODL_ACME.xlsx", 120),),
+            created_at="2026-10-14T08:55:01+00:00",
+        )
+
+    def test_round_trip_survives_json(self) -> None:
+        analysis = self._analysis()
+        stored = json.loads(json.dumps(analysis_to_dict(analysis, "ACME", "Acme NV")))
+        assert analysis_from_dict(stored) == analysis
+
+    def test_older_saved_review_missing_optional_fields_still_loads(self) -> None:
+        stored = analysis_to_dict(self._analysis(), "ACME", "Acme NV")
+        for key in ("focus_notes", "sources", "omitted_series", "documents"):
+            del stored[key]
+        loaded = analysis_from_dict(stored)
+        assert loaded.sources == () and loaded.documents == [] and loaded.focus_notes == ""
+
+    def test_review_id_sorts_chronologically_and_labels_readably(self) -> None:
+        early = make_review_id("2026-10-14T08:55:01+00:00", "2025-03-31")
+        late = make_review_id("2026-11-02T10:00:00+00:00", "2025-06-30")
+        assert early < late
+        assert review_label(early) == "2026-10-14 08:55 UTC · period 2025-03-31"
+        assert review_label("garbage") == "garbage"
+
+    def test_prune_returns_oldest_beyond_keep(self) -> None:
+        ids = [make_review_id(f"2026-10-0{day}T00:00:00+00:00", "p") for day in range(1, 6)]
+        assert ids_to_prune(ids, 3) == sorted(ids)[:2][::-1]
+        assert ids_to_prune(ids, 10) == []
+
+    def test_storage_folder_is_filesystem_safe(self) -> None:
+        assert storage_folder("NOVO-B DC") == "novo-b-dc"
+        assert storage_folder("BRK/B") == "brk-b"
+        assert storage_folder("///") == "unknown"
