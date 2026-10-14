@@ -57,6 +57,9 @@ class ParsedRecord:
     value: float
     currency: str | None
     unit: str | None
+    # Date of the source MODL file (the chunk's documentDate), so callers that
+    # see several uploads of the same model can tell which version a value came from.
+    document_date: str | None = None
 
 
 def parse_value_from_content(content: str, currency: str | None, unit: str | None) -> float | None:
@@ -122,6 +125,7 @@ def parse_chunks(chunks: list[Chunk]) -> list[ParsedRecord]:
                 value=value,
                 currency=chunk.currency,
                 unit=chunk.unit,
+                document_date=chunk.document_date,
             )
         )
     return records

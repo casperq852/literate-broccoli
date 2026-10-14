@@ -23,6 +23,7 @@ from streamlit.logger import get_logger
 from chat.chat_controller import ChatController
 from companies.company_controller import CompanyController
 from helpers import datalake_account, download_from_datalake, hide_research_notes
+from kpi_monitor import kpi_view
 from search.search_model import ALL_DOCUMENT_TYPES, RESEARCH_NOTE_DOC_TYPE
 from upload.upload_controller import UploadController
 
@@ -59,13 +60,15 @@ def render(ticker: str, controller: CompanyController, config: dict[str, Any]) -
     m3.metric("Sector", company["gics_sector"] or "Unclassified")
     m4.metric("Documents", company["doc_count"])
 
-    tab_docs, tab_financials, tab_positioning, tab_chat, tab_upload = st.tabs(
-        ["Documents", "Financials", "Positioning", "Chat", "Upload"]
+    tab_docs, tab_financials, tab_kpi, tab_positioning, tab_chat, tab_upload = st.tabs(
+        ["Documents", "Financials", "KPI Monitor", "Positioning", "Chat", "Upload"]
     )
     with tab_docs:
         _render_documents_tab(ticker, controller)
     with tab_financials:
         _render_financials_tab(ticker, controller, config, company)
+    with tab_kpi:
+        kpi_view.render(ticker, company, controller, config)
     with tab_positioning:
         _render_positioning_tab(controller, company)
     with tab_chat:

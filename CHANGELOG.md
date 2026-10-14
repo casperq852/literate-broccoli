@@ -2,6 +2,16 @@
 
 All notable changes to this project are recorded in this file. The format is based on Keep a Changelog, and the project aims to follow semantic versioning.
 
+## [Unreleased]
+
+### Added
+
+- KPI Monitor tab on the company detail page: upload a Bloomberg model, earnings transcripts and other documents, and get an LLM review of which metrics changed significantly or look concerning, linked to management commentary. New `kpi_monitor` package, `configs/kpi_monitor_content.yaml`, and an `equities.kpi_monitor` config block.
+
+### Changed
+
+- `dcf_parsing_model.ParsedRecord` now carries the source `document_date`.
+
 ## [0.0.1] - 2026-08-07
 
 ### Added
