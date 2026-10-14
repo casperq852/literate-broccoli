@@ -14,6 +14,7 @@ from datetime import date
 from search.search_model import (
     Chunk,
     _chunk_from_result,
+    build_financial_model_filter,
     build_odata_filter,
     format_context,
     format_investment_context,
@@ -183,3 +184,21 @@ class TestChunkFromResult:
         assert chunk.companies == ()
         assert chunk.score == 0.0
         assert chunk.metric is None
+
+
+class TestBuildFinancialModelFilter:
+    def test_matches_the_tickers_field_which_is_where_a_models_ticker_is_stored(self) -> None:
+        assert "tickers/any(t: t eq 'ASML')" in build_financial_model_filter("ASML")
+
+    def test_still_matches_the_ticker_in_companies_and_adds_the_company_name(self) -> None:
+        odata = build_financial_model_filter("ASML", "ASML Holding N.V.")
+        assert "companies/any(c: c eq 'ASML')" in odata
+        assert "companies/any(c: c eq 'ASML Holding N.V.')" in odata
+        assert odata.startswith("sourceType eq 'financial_model' and (") and odata.endswith(")")
+
+    def test_quotes_are_escaped(self) -> None:
+        odata = build_financial_model_filter("O'REILLY", "O'Reilly Automotive")
+        assert "t eq 'O''REILLY'" in odata and "c eq 'O''Reilly Automotive'" in odata
+
+    def test_no_company_name_adds_no_name_clause(self) -> None:
+        assert build_financial_model_filter("ASML").count("any(") == 2

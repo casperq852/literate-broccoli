@@ -23,7 +23,7 @@ from streamlit.logger import get_logger
 from companies.company_controller import CompanyController
 from helpers import datalake_account, download_from_datalake, hide_research_notes
 from kpi_monitor import kpi_model as model
-from kpi_monitor.kpi_controller import KpiController
+from kpi_monitor.kpi_controller import KpiController, UploadOutcome
 from kpi_monitor.kpi_export_model import DOCX_MIME
 from kpi_monitor.kpi_model import KpiAnalysis, SourceFile
 from search.search_model import ALL_DOCUMENT_TYPES, RESEARCH_NOTE_DOC_TYPE
@@ -64,7 +64,7 @@ def render(ticker: str, company: dict, company_controller: CompanyController, co
         "judges which moves are significant, and ties them to management's commentary."
     )
     _render_saved_reviews(ticker, controller, config, account)
-    _render_sources(ticker, controller, company_controller, config)
+    pending = _render_sources(ticker, controller, company_controller, config)
 
     st.divider()
     focus_notes = st.text_area(
@@ -72,7 +72,22 @@ def render(ticker: str, company: dict, company_controller: CompanyController, co
         placeholder="e.g. Watch gross margin and the new segment disclosure; I'm concerned about inventory.",
         key=f"kpi_focus_{ticker}",
     )
+    pending_notice = st.empty()
+    if pending:
+        pending_notice.info(
+            f"{len(pending)} selected file(s) have not been ingested yet. Running the review will upload and "
+            "ingest them first."
+        )
     if st.button("Run KPI review", type="primary", key=f"kpi_run_{ticker}"):
+        ingested_now = False
+        if pending:
+            outcomes = _ingest_files(ticker, pending, controller, company_controller, config)
+            st.session_state[f"kpi_ingest_report_{ticker}"] = outcomes
+            pending_notice.empty()
+            _show_outcomes(outcomes)
+            ingested_now = any(outcome.segments > 0 for outcome in outcomes)
+        else:
+            st.session_state.pop(f"kpi_ingest_report_{ticker}", None)
         document_types = [t for t in ALL_DOCUMENT_TYPES if t != RESEARCH_NOTE_DOC_TYPE] if hide_research_notes() else None
         try:
             with st.spinner("Reading the model and the documents..."):
@@ -89,7 +104,18 @@ def render(ticker: str, company: dict, company_controller: CompanyController, co
             st.error(f"The KPI review failed: {error}")
             return
         if analysis is None:
-            st.warning("No financial model data found for this company yet. Upload its `MODL_*.xlsx` above first.")
+            if ingested_now:
+                st.info(
+                    "The files were just ingested, but the search index can take a minute to show a new model. "
+                    "Try running the review again shortly."
+                )
+            else:
+                st.warning(
+                    f"No financial model records found in the index for {company['display_name']} ({ticker}). "
+                    "Add its `MODL_*.xlsx` under **Add sources** (a file counts as a model only if its name "
+                    "starts with `MODL_`). If you already did, the model may have been indexed under a "
+                    "different company name or ticker; check the Companies page."
+                )
             st.session_state.pop(result_key, None)
             return
         st.session_state[result_key] = analysis
@@ -100,6 +126,8 @@ def render(ticker: str, company: dict, company_controller: CompanyController, co
         except Exception:
             logger.exception("Could not save the KPI review for %s", ticker)
             st.warning("The review is shown below but could not be saved to the Data Lake.")
+        if pending:
+            st.rerun()  # redraw with the uploader cleared; the review and ingest report persist in session state
 
     analysis: KpiAnalysis | None = st.session_state.get(result_key)
     if analysis is not None:
@@ -170,46 +198,88 @@ def _render_saved_reviews(ticker: str, controller: KpiController, config: dict[s
 # ── sources ──────────────────────────────────────────────────────────────────────
 
 
+def _uploader_key(ticker: str) -> str:
+    """Uploader widget key; bumping the generation clears the selected files after an ingest."""
+    return f"kpi_uploader_{ticker}_{st.session_state.get(f'kpi_upload_gen_{ticker}', 0)}"
+
+
+def _show_outcomes(outcomes: list[UploadOutcome]) -> None:
+    for outcome in outcomes:
+        if outcome.error:
+            st.error(f"**{outcome.filename}** failed: {outcome.error}")
+        elif outcome.segments > 0:
+            st.success(f"Ingested **{outcome.filename}** as {outcome.segments:,} searchable chunks.")
+        else:
+            st.warning(f"**{outcome.filename}** was uploaded but produced no searchable content.")
+        for warning in outcome.warnings:
+            st.warning(warning)
+
+
+def _ingest_files(
+    ticker: str,
+    files: list[Any],
+    controller: KpiController,
+    company_controller: CompanyController,
+    config: dict[str, Any],
+) -> list[UploadOutcome]:
+    """
+    Upload and ingest the selected files, record them as this review's sources, and clear the uploader.
+
+    Returns:
+        list[UploadOutcome]: One outcome per file.
+    """
+    status = st.empty()
+    outcomes = controller.upload_sources(
+        [(file.name, file.getvalue()) for file in files],
+        config,
+        on_progress=lambda name: status.info(f"Ingesting {name}..."),
+    )
+    status.empty()
+    for outcome in outcomes:
+        if outcome.segments > 0 and not outcome.error:
+            st.session_state.setdefault(f"kpi_new_sources_{ticker}", []).append(
+                SourceFile(outcome.filename, outcome.kind, outcome.path, outcome.segments)
+            )
+    if any(outcome.segments > 0 for outcome in outcomes):
+        company_controller.sync_companies_incremental([ticker], config)
+    gen_key = f"kpi_upload_gen_{ticker}"
+    st.session_state[gen_key] = st.session_state.get(gen_key, 0) + 1
+    return outcomes
+
+
 def _render_sources(
     ticker: str, controller: KpiController, company_controller: CompanyController, config: dict[str, Any]
-) -> None:
+) -> list[Any]:
+    """
+    Render the source uploader.
+
+    Returns:
+        list[Any]: The files currently selected but not yet ingested.
+    """
     allowed = [ext.lstrip(".") for ext in config["allowed_extensions"]]
+    report_key = f"kpi_ingest_report_{ticker}"
     with st.expander("Add sources: model, transcripts, other documents", expanded=False):
+        if previous := st.session_state.get(report_key):
+            _show_outcomes(previous)
         uploaded = st.file_uploader(
             "Choose files",
             type=allowed,
             accept_multiple_files=True,
-            key=f"kpi_uploader_{ticker}",
+            key=_uploader_key(ticker),
+            help="Selecting files does not upload them. Click Upload and ingest, or just run the review.",
         )
         if not uploaded:
-            return
+            return []
         for file in uploaded:
             kind = "financial model" if model.classify_upload(file.name) == "financial_model" else "document"
             st.write(f"**{file.name}**  ·  {file.size / 1024:.1f} KB  ·  {kind}")
+        if not any(model.classify_upload(file.name) == "financial_model" for file in uploaded):
+            st.caption("No `MODL_*.xlsx` selected: the review needs the Bloomberg model to be ingested at some point.")
 
-        if not st.button("Upload and ingest", key=f"kpi_upload_btn_{ticker}"):
-            return
-        status = st.empty()
-        outcomes = controller.upload_sources(
-            [(file.name, file.getvalue()) for file in uploaded],
-            config,
-            on_progress=lambda name: status.info(f"Ingesting {name}..."),
-        )
-        status.empty()
-        for outcome in outcomes:
-            if outcome.error:
-                st.error(f"**{outcome.filename}** failed: {outcome.error}")
-            elif outcome.segments > 0:
-                st.success(f"Ingested **{outcome.filename}** as {outcome.segments:,} searchable chunks.")
-                st.session_state.setdefault(f"kpi_new_sources_{ticker}", []).append(
-                    SourceFile(outcome.filename, outcome.kind, outcome.path, outcome.segments)
-                )
-            else:
-                st.warning(f"**{outcome.filename}** was uploaded but produced no searchable content.")
-            for warning in outcome.warnings:
-                st.warning(warning)
-        if any(o.segments > 0 for o in outcomes):
-            company_controller.sync_companies_incremental([ticker], config)
+        if st.button("Upload and ingest", key=f"kpi_upload_btn_{ticker}"):
+            st.session_state[report_key] = _ingest_files(ticker, uploaded, controller, company_controller, config)
+            st.rerun()
+    return list(uploaded)
 
 
 # ── results ──────────────────────────────────────────────────────────────────────

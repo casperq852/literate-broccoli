@@ -346,7 +346,40 @@ def _chunk_from_result(result: dict) -> Chunk:
 _BULK_PAGE_SIZE = 1000  # Azure AI Search's maximum $top per request
 
 
-def retrieve_financial_model_bulk(index_name: str, ticker: str, max_records: int) -> list[Chunk]:
+def build_financial_model_filter(ticker: str, company_name: str | None = None) -> str:
+    """
+    Build the OData filter selecting one company's financial-model chunks.
+
+    A model's chunks are tagged with the company's ticker in ``tickers`` and
+    its (canonical) name in ``companies`` -- the index's ``companies`` field
+    holds names, not tickers (see ``database.cache``'s sync mapping). The
+    ticker is matched against ``tickers`` first; ``companies`` is also tried
+    with the ticker (how this filter originally worked) and with the company
+    name, so a model tagged any of those ways is found.
+
+    Args:
+        ticker (str): The company ticker as stored in this app's company cache.
+        company_name (str | None): The company's display name, if known.
+
+    Returns:
+        str: An OData filter expression.
+    """
+
+    def escape(value: str) -> str:
+        return value.replace("'", "''")
+
+    matches = [
+        f"tickers/any(t: t eq '{escape(ticker)}')",
+        f"companies/any(c: c eq '{escape(ticker)}')",
+    ]
+    if company_name:
+        matches.append(f"companies/any(c: c eq '{escape(company_name)}')")
+    return f"sourceType eq 'financial_model' and ({' or '.join(matches)})"
+
+
+def retrieve_financial_model_bulk(
+    index_name: str, ticker: str, max_records: int, company_name: str | None = None
+) -> list[Chunk]:
     """
     Pull every financial-model chunk for one company via a filter-only query.
 
@@ -370,15 +403,16 @@ def retrieve_financial_model_bulk(index_name: str, ticker: str, max_records: int
 
     Args:
         index_name (str): The Azure AI Search index to query.
-        ticker (str): The exact company ticker as stored in the index's
-            ``companies`` field (the canonical ticker stored at ingest time).
+        ticker (str): The company ticker as stored in this app's company cache
+            (the canonical ticker stored in the index's ``tickers`` field at ingest time).
         max_records (int): Hard cap on records returned.
+        company_name (str | None): The company's display name; also matched
+            against the index's ``companies`` field. See ``build_financial_model_filter``.
 
     Returns:
         list[Chunk]: Every financial_model chunk for this company, oldest-first.
     """
-    escaped_ticker = ticker.replace("'", "''")
-    odata_filter = f"sourceType eq 'financial_model' and companies/any(c: c eq '{escaped_ticker}')"
+    odata_filter = build_financial_model_filter(ticker, company_name)
 
     client = get_search_client(index_name)
     select_fields = [
