@@ -1,0 +1,79 @@
+canonical_line_items:
+  revenue:
+    label: "Revenue"
+    required: true
+    keywords: ["revenue", "net sales", "total sales"]
+    exclude_keywords: []
+  ebit:
+    label: "EBIT / Operating Income"
+    required: false
+    keywords: ["ebit", "operating income", "operating profit"]
+    exclude_keywords: ["ebitda"]
+  ebitda:
+    label: "EBITDA"
+    required: false
+    keywords: ["ebitda"]
+    exclude_keywords: []
+  d_and_a:
+    label: "Depreciation & Amortization"
+    required: false
+    keywords: ["depreciation", "amortization", "amortisation", "d&a"]
+    exclude_keywords: []
+  capex:
+    label: "Capital Expenditure"
+    required: false
+    keywords: ["capital expenditure", "capex", "purchase of property"]
+    exclude_keywords: []
+  net_debt:
+    label: "Net Debt"
+    required: false
+    keywords: ["net debt"]
+    exclude_keywords: []
+  total_debt:
+    label: "Total Debt"
+    required: false
+    keywords: ["total debt", "long-term debt", "long term debt", "short-term debt", "short term debt"]
+    exclude_keywords: []
+  cash_and_equivalents:
+    label: "Cash & Equivalents"
+    required: false
+    keywords: ["cash and cash equivalents", "cash and equivalents"]
+    exclude_keywords: []
+  shares_outstanding:
+    label: "Shares Outstanding"
+    required: true
+    keywords: ["shares outstanding", "diluted shares", "basic shares", "weighted average shares", "weighted avg. shares"]
+    exclude_keywords: []
+  tax_expense:
+    label: "Income Tax Expense"
+    required: false
+    keywords: ["income tax expense", "provision for income tax", "tax expense"]
+    exclude_keywords: []
+
+llm_suggestion:
+  system_prompt: >-
+    You are an equity research assistant helping a portfolio manager set
+    starting assumptions for a discounted cash flow model. Read the provided
+    research context and suggest a starting revenue growth rate, EBIT margin,
+    and discount rate (WACC). Ground every number in the context where
+    possible and cite sources with inline [N] markers. Return ONLY valid JSON
+    with no preamble, explanation, or markdown fences.
+  user_prompt_template: |-
+    Company: {company}
+
+    Research context (numbered sources):
+    {context}
+
+    Based on this research, suggest starting DCF assumptions. Return a JSON
+    object with exactly these fields:
+    - "revenue_growth_rate": a decimal fraction (e.g. 0.12 for 12%), your best
+      estimate of a sustainable near-term annual revenue growth rate
+    - "ebit_margin": a decimal fraction (e.g. 0.35 for 35%), your best estimate
+      of a sustainable EBIT margin
+    - "discount_rate": a decimal fraction (e.g. 0.09 for 9%), a reasonable WACC
+      given the company's risk profile and sector
+    - "rationale": a short paragraph (2-4 sentences) explaining these choices,
+      with inline [N] citations to the numbered sources where used
+    - "cited_indices": a list of the source numbers actually cited in the rationale
+
+    JSON:

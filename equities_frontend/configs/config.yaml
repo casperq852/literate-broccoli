@@ -1,0 +1,198 @@
+# Azure AI Foundry / Azure AI Search endpoints -- not secrets, so they live
+# here (checked in) rather than in .env. Auth (API key or DefaultAzureCredential)
+# is resolved separately by avb_llm; these are only "which service to call".
+
+ingest:
+  chunk_size: 1200
+  chunk_overlap: 200
+  batch_size: 16
+  include_patterns:
+    - "**/*.md"
+    - "**/*.pdf"
+    - "**/*.txt"
+    - "**/*.html"
+    - "**/*.htm"
+    - "**/*.docx"
+    - "**/*.xlsx"
+    - "**/*.pptx"
+
+# Log level for the ingestion CLI (vectorization.main).
+logging:
+  level: DEBUG
+
+# ── feature flags ─────────────────────────────────────────────────────────────
+# All new functionality is opt-in. Existing workflows are unaffected when
+# both flags below are set to false (the default).
+# set the relevant flags to true.
+
+enrichment:
+  enabled: true
+  # Deployment used for field-driven metadata enrichment. The avb_search
+  # MetadataEnricher populates every search_index_configuration.fields entry
+  # marked `llm_defined: true`, using each field's description (and any
+  # allowed_values) to build the structured output schema.
+  model: gpt-5.6-sol
+  # Base instruction prepended to the auto-generated "Fields to extract:" list.
+  instructions: >-
+    You are a financial analyst extracting structured metadata from equity
+    research documents. Given a text excerpt, return a value for each requested
+    field. Only include companies the document is ABOUT, never the publishing
+    broker or bank. Use null when a field cannot be determined from the text.
+  # Characters of concatenated document text sent to the enrichment model.
+  sample_chars: 3000
+
+financial_model_extraction:
+  enabled: true # Extraction of excel file models - has to be in the bloomberg quarterly and annual model format.
+  filename_prefix: "MODL_"
+  # Index of the first period-value column in a Bloomberg model sheet
+  # (columns before this hold metric name / Bloomberg field / segment id).
+  data_start_col: 4
+
+# Storage account per environment, keyed by the --storage_account CLI flag
+# (vectorization.main). Only used when ACCOUNT_NAME is not set in the
+# environment.
+storage_accounts:
+  development: weavbaostoredls01
+  acceptance: weavbaastoredls01
+  production: weavbapstoredls01
+
+# ── search index configuration ────────────────────────────────────────────────
+search_index_configuration:
+  fields:
+    # ── existing fields ───────────────────────────────────────────────────────
+    - name: title
+      type: String
+      description: Title of the document.
+      llm_defined: false
+      filterable: true
+      searchable: true
+      aliases: [subject]
+
+    - name: author
+      type: String
+      description: Author of the document (or email sender).
+      llm_defined: false
+      filterable: true
+      facetable: true
+      aliases: [from, sender, creator]
+
+    - name: extension
+      type: String
+      description: Extension of the document.
+      llm_defined: false
+      filterable: true
+
+    # ── company identification ─────────────────────────────────────────────────
+    - name: companies
+      type: Collection(String)
+      description: |
+        List of official full company names. Include only companies the document is
+        ABOUT and not the publishing broker or bank. Example is "NVIDIA Corporation" for Nvidia.
+      llm_defined: true
+      filterable: true
+      facetable: false
+      searchable: false
+
+    - name: tickers
+      type: Collection(String)
+      description: |
+        List of official full company tickers. Include only tickers of companies the
+        document is ABOUT and not the publishing broker or bank. Example is "NVDA" for Nvidia.
+      llm_defined: true
+      filterable: true
+      facetable: false
+      searchable: false
+
+    - name: documentDate
+      type: Date
+      description: reference date as "YYYY-MM-DD".
+      llm_defined: true
+      filterable: true
+      aliases: [date, creationDate, modDate]
+
+    - name: publisher
+      type: String
+      description: |
+        Publishing broker or bank (e.g. "Bernstein"). Null if not sell-side.
+      llm_defined: true
+      filterable: true
+      facetable: true
+      searchable: false
+
+    - name: documentType
+      type: String
+      description: |
+        One of exactly: research_note | financial_model | earnings_transcript | annual_report | investor_presentation | other
+      llm_defined: true
+      filterable: true
+      facetable: true
+      searchable: false
+
+    - name: sourceType
+      type: String
+      filterable: true
+      facetable: true
+      searchable: false
+
+    # ── financial model fields ─────────────────────────────────────────────────
+    - name: metric
+      type: String
+      filterable: true
+      searchable: true
+
+    - name: periodLabel
+      type: String
+      filterable: true
+      searchable: false
+
+    - name: periodEndDate
+      type: Date
+      filterable: true
+      sortable: true
+
+    - name: periodicity
+      type: String
+      filterable: true
+      searchable: false
+
+    - name: isEstimate
+      type: String
+      filterable: true
+      searchable: false
+
+    - name: currency
+      type: String
+      filterable: true
+      searchable: false
+
+    - name: unit
+      type: String
+      filterable: false
+      searchable: false
+
+    - name: segment
+      type: String
+      filterable: true
+      searchable: true
+
+    # Renamed from "tableRow": the live index already has a "tableRow" field
+    # typed Edm.String (predates this Int32 schema and can't be altered in
+    # place -- Azure Search forbids changing an existing field's type). This
+    # new field takes over via the alias below, which folds the extractor's
+    # raw "tableRow" metadata key onto "tableRowIndex" before upload, so the
+    # old String field is simply never written to again.
+    - name: tableRowIndex
+      type: Int32
+      filterable: true
+      aliases: [tableRow]
+
+    - name: tableRowsTotal
+      type: Int32
+      filterable: true
+      searchable: false
+
+  vector_search:
+    profile: vec-prof
+    algorithm: hnsw
+    dimensions: 3072
+    vectorizer_name: vectorizer-1778244789171

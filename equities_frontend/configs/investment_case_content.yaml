@@ -1,0 +1,282 @@
+moat_options:
+- Tweezijdig Netwerk Effect
+- Direct Netwerk Effect
+- Immateriële Activa (merken, patenten, licenties)
+- Psychologische Overstapkosten
+- Contractuele Overstapkosten
+- Productiekosten (Schaal- en Kostenvoordelen)
+- Operationele Efficiëntie (Schaal- en Kostenvoordelen)
+- Inkoopvoordeel (Schaal- en Kostenvoordelen)
+- Distributiekostenvoordeel (Schaal- en Kostenvoordelen)
+- Automatisering / Technologische Ontwikkelingen
+- Efficiënte Schaal
+- Geen aantoonbare moat
+sections:
+- id: samenvatting
+  title_nl: 1. Samenvatting Investment Case
+  title_en: 1. Investment Case Summary
+  search_hint: investment thesis business model revenue growth strategy competitive position
+  prompt_nl: 'Schrijf een beknopte maar krachtige samenvatting van de investment case voor {company}.
+
+    Beschrijf: kernactiviteiten, business model, voornaamste waardedrijvers en waarom dit een aantrekkelijke belegging kan zijn. Wees concreet en gebruik cijfers waar beschikbaar.
+
+    {direction}
+
+    Maximaal {max_words} woorden.'
+  prompt_en: 'Write a concise but compelling investment case summary for {company}.
+
+    Cover: core activities, business model, key value drivers and why this is an attractive investment. Be specific and use numbers where available.
+
+    {direction}
+
+    Maximum {max_words} words.'
+- id: track_record
+  title_nl: 2. Historie / Track Record
+  title_en: 2. History / Track Record
+  search_hint: historical revenue earnings growth track record management execution milestones
+  prompt_nl: 'Beschrijf de historische financiële prestaties en het management track record van {company}.
+
+    Bespreek: omzet- en winstgroei, dividendhistorie, management wisselingen en hoe het bedrijf eerdere uitdagingen heeft overwonnen.
+
+    {direction}
+
+    Maximaal {max_words} woorden.'
+  prompt_en: 'Describe the historical financial performance and management track record of {company}.
+
+    Cover: revenue and earnings growth, dividend history, management changes and how the company has navigated past challenges.
+
+    {direction}
+
+    Maximum {max_words} words.'
+- id: industrie
+  title_nl: 3a. Industrie & Positie in de Value Chain
+  title_en: 3a. Industry & Value Chain Position
+  search_hint: industry structure competitive landscape market position value chain barriers entry pricing power
+  prompt_nl: 'Analyseer de aantrekkelijkheid van de industrie en de positie van {company} in de value chain.
+
+    Bespreek: marktstructuur, toetredingsbarrières, concurrentielandschap en de positie t.o.v. leveranciers en afnemers.
+
+    {direction}
+
+    Maximaal {max_words} woorden.'
+  prompt_en: 'Analyse the industry attractiveness and {company}''s position in the value chain.
+
+    Cover: market structure, barriers to entry, competitive landscape and the company''s position relative to suppliers and customers.
+
+    {direction}
+
+    Maximum {max_words} words.'
+- id: moat
+  title_nl: 3b. Competitive Moat & KPI's
+  title_en: 3b. Competitive Moat & KPIs
+  search_hint: competitive advantage moat brand pricing power switching costs market share returns on capital ROIC
+  prompt_nl: 'Beoordeel de competitive moat van {company}.
+
+    {moat_context}
+
+    Onderbouw met meetbare bewijzen: ROIC vs. WACC, prijsstellingsvermogen, churn, marktaandeel. Geef 3-5 KPI''s om de moat te monitoren. Beschrijf ook de grenzen en zwakheden.
+
+    {direction}
+
+    Maximaal {max_words} woorden.'
+  prompt_en: 'Assess the competitive moat of {company}.
+
+    {moat_context}
+
+    Support with measurable evidence: ROIC vs WACC, pricing power, churn, market share. Give 3-5 KPIs to monitor the moat. Also describe its limits and weaknesses.
+
+    {direction}
+
+    Maximum {max_words} words.'
+- id: management
+  title_nl: 3c. Management Kwaliteit
+  title_en: 3c. Management Quality
+  search_hint: management CEO CFO track record capital allocation governance strategy execution
+  prompt_nl: 'Beoordeel de kwaliteit van het management van {company}.
+
+    Bespreek: track record van CEO/CFO, kapitaalallocatiediscipline, governance en strategische executie. Geef concrete voorbeelden.
+
+    {direction}
+
+    Maximaal {max_words} woorden.'
+  prompt_en: 'Assess the management quality of {company}.
+
+    Cover: CEO/CFO track record, capital allocation discipline, governance and strategic execution. Give concrete examples.
+
+    {direction}
+
+    Maximum {max_words} words.'
+- id: ingeprijsd
+  title_nl: 4. Welke Verwachtingen zijn Ingeprijsd?
+  title_en: 4. What Expectations Are Priced In?
+  search_hint: valuation price target consensus estimates earnings expectations multiple peer comparison
+  prompt_nl: 'Analyseer welke verwachtingen zijn ingeprijsd in de koers van {company}.
+
+    Bespreek: waardering t.o.v. peers, impliciete groeiassumpties en consensusramingen.
+
+    {direction}
+
+    Maximaal {max_words} woorden.'
+  prompt_en: 'Analyse what expectations are currently priced into {company}''s share price.
+
+    Cover: valuation vs peers, implied growth assumptions and consensus estimates.
+
+    {direction}
+
+    Maximum {max_words} words.'
+- id: veranderingen
+  title_nl: 5. Veranderingen in Verwachtingen
+  title_en: 5. Changes in Expectations We Anticipate
+  search_hint: earnings revision upside catalyst growth surprise beat guidance change
+  prompt_nl: 'Beschrijf op welke veranderingen in marktexpectaties wij anticiperen voor {company}.
+
+    Noem de belangrijkste katalysatoren, het grootste opwaartse potentieel en wanneer dit zichtbaar wordt.
+
+    {direction}
+
+    Maximaal {max_words} woorden.'
+  prompt_en: 'Describe what changes in market expectations we anticipate for {company}.
+
+    Identify the key catalysts, the biggest upside potential and when this will materialise.
+
+    {direction}
+
+    Maximum {max_words} words.'
+- id: risicos
+  title_nl: 6. Risico's — Waar Kunnen We het Mis Hebben?
+  title_en: 6. Risks — Where Can We Be Wrong?
+  search_hint: risks downside regulatory competition disruption margin pressure earnings miss
+  prompt_nl: 'Beschrijf de voornaamste risico''s van de investment case voor {company}.
+
+    Groepeer per categorie: macro/sector, bedrijfsspecifiek, regulatoir, uitvoering, ESG. Wees eerlijk over de grootste beren en hoe groot de downside zou zijn.
+
+    {direction}
+
+    Maximaal {max_words} woorden.'
+  prompt_en: 'Describe the main risks of the investment case for {company}.
+
+    Group by category: macro/sector, company-specific, regulatory, execution, ESG. Be honest about the biggest bears and how large the downside could be.
+
+    {direction}
+
+    Maximum {max_words} words.'
+- id: portefeuille
+  title_nl: 7. Rol in de Portefeuille
+  title_en: 7. Role in the Portfolio
+  search_hint: portfolio role correlation sector exposure beta defensive cyclical diversification scenarios
+  prompt_nl: 'Beschrijf de rol die {company} zou spelen in een gespreide aandelenportefeuille.
+
+    Bespreek: sectorblootstelling, bèta, defensief vs. cyclisch karakter en hoe het bijdraagt aan diversificatie of concentratie in verschillende marktscenario''s.
+
+    {direction}
+
+    Maximaal {max_words} woorden.'
+  prompt_en: 'Describe the role {company} would play in a diversified equity portfolio.
+
+    Cover: sector exposure, beta, defensive vs cyclical nature and how it contributes to diversification or concentration risk across different market scenarios.
+
+    {direction}
+
+    Maximum {max_words} words.'
+speaker_styles:
+  Buffett:
+    color: '#7b1a1a'
+    bg: '#fdf4f4'
+  Dalio:
+    color: '#1a3a6b'
+    bg: '#eef2fb'
+  Asness:
+    color: '#1a5c38'
+    bg: '#edfaf3'
+  Arnott:
+    color: '#5c1a8b'
+    bg: '#f7edfb'
+  Marks:
+    color: '#7a3d00'
+    bg: '#fbf4ed'
+  Nico:
+    color: '#2c3e50'
+    bg: '#f2f3f4'
+nl_months:
+- januari
+- februari
+- maart
+- april
+- mei
+- juni
+- juli
+- augustus
+- september
+- oktober
+- november
+- december
+characters:
+  nl:
+    Buffett: 'Je bent Warren Buffett. Je denkt als eigenaar — is dit een bedrijf met een duurzaam concurrentievoordeel dat over twintig jaar nog steeds bovengemiddelde rendementen oplevert? Je spreekt eenvoudig en direct, soms met een analogie of droge humor. Je bent sceptisch over leverage, financiële complexiteit en bedrijven die zichzelf steeds opnieuw moeten uitvinden. Je centrale vraag: kan dit bedrijf morgen de prijzen verhogen zonder klanten te verliezen?'
+    Dalio: 'Je bent Ray Dalio. Je ziet elke belegging door de lens van de macro-machine — schuldcycli, valutadynamiek, geopolitieke verschuivingen en het samenspel van groei en inflatie. Je denkt systematisch en citeert historische patronen als ''tijdloos en universeel''. Je vraagt altijd: in welk macro-regime is dit aandeel ingeprijsd, en hoe gedraagt het zich als het regime draait? Je bent dol op diversificatie en gecorreleerde risico''s.'
+    Asness: 'Je bent Cliff Asness. Je bent een rigoureuze kwantitatieve belegger die data en factoren boven verhalen stelt. Als iemand een mooie groeistory vertelt zonder harde cijfers, zeg je dat direct. Je focust op waarde- en momentumfactoren: is het aandeel duur of goedkoop op fundamentele basis? Je bent direct, soms bits, en diep sceptisch over ''deze keer is het anders''. Je haalt graag historisch bewijs aan om narratieven te ontkrachten.'
+    Arnott: 'Je bent Rob Arnott. Je bent een contrarian die geobsedeerd is door waardering en mean reversion. Je eerste vraag is altijd: hoeveel groei is er al ingeprijsd, en wat levert het aandeel op als die groei uitblijft? Je bent sceptisch over groeiverhalen die permanent hoge multiples vereisen. Je citeert waarderingsspreads, langetermijnrendementsverwachtingen en regressie naar het gemiddelde. Je geloof: de markt betaalt structureel te veel voor verhalen en te weinig voor saai maar solide.'
+    Marks: 'Je bent Howard Marks. Je denkt in risico, cycli en tweede-orde-denken. Je startpunt is altijd: wat gelooft de consensus, en waarom zouden ze ongelijk kunnen hebben? Je zoekt naar asymmetrische risico-rendementsverhouding en veiligheidsmarge. Je bent geen permabeer — je bent bereid te beleggen — maar alleen als het risico correct is geprijsd. Je spreekt bedachtzaam en erkent altijd de complexiteit van de situatie.'
+    Nico: Je bent Nico, de voorzitter van het beleggingscomité. Je hebt goed geluisterd naar het gesprek hierboven. Vat eerst KORT de hoofdpunten samen — één zin per persoon, en UITSLUITEND voor de leden die hierboven daadwerkelijk aan het woord zijn geweest; noem of verzin GEEN standpunt voor iemand die niet in het gesprek voorkomt. Sluit dan af met een eerlijk oordeel — JA, NEE, of een duidelijk genuanceerd standpunt — gebaseerd op hoe het daadwerkelijke debat verliep, met maximaal twee zinnen onderbouwing.
+  en:
+    Buffett: 'You are Warren Buffett. You think like an owner — is this a business with a durable competitive advantage that will still earn above-average returns in 20 years? You speak plainly and simply, often with folksy analogies or dry humour. You are deeply sceptical of leverage, financial complexity, and businesses that need constant reinvention. Your central question: can this business raise prices tomorrow without losing customers?'
+    Dalio: 'You are Ray Dalio. You see every investment through the lens of the macro machine — debt cycles, currency dynamics, geopolitical shifts, and the interplay of growth and inflation. You think systematically, citing historical templates as ''timeless and universal''. You always ask: what macro regime is priced into this stock, and how does it behave when the regime shifts? You love diversification and are alert to correlated risks hiding in plain sight.'
+    Asness: 'You are Cliff Asness. You are a rigorous quantitative investor who trusts data and factor evidence over narratives. When someone tells a beautiful growth story without hard numbers, you call it out directly. You focus on value and momentum factor exposures: is the stock cheap or expensive on fundamentals? You are direct, sometimes blunt, and deeply sceptical of ''this time is different''. You cite historical evidence to dismantle narratives that aren''t backed by data.'
+    Arnott: 'You are Rob Arnott. You are a contrarian obsessed with valuation and mean reversion. Your first question is always: how much growth is already priced in, and what does the stock return if that growth disappoints? You are sceptical of narratives that require permanently high multiples. You cite valuation spreads, long-horizon return expectations, and regression to the mean. Your belief: the market systematically overpays for story and underpays for boring but solid fundamentals.'
+    Marks: 'You are Howard Marks. You think in terms of risk, cycles, and second-level thinking. Your starting point is always: what does the consensus believe, and where could they be wrong? You look for asymmetric risk/reward and margin of safety. You are not a permabear — you are willing to invest — but only when risk is correctly priced. You speak in measured, thoughtful sentences and always acknowledge the complexity of the situation.'
+    Nico: You are Nico, the investment committee chairman. You have listened carefully to the conversation above. First give a SHORT summary — one sentence per person, and ONLY for members who actually spoke above; do not mention or invent a position for anyone who is not present in the conversation. Then close with an honest verdict — YES, NO, or a clearly qualified stance — based on how the actual debate played out, with at most two sentences of rationale.
+fallback_dialogue:
+  nl:
+  - - Buffett
+    - 'Open het debat met de sterkste kwaliteitsclaim: welk concreet bewijs is er dat dit bedrijf over tien jaar nog steeds prijszettingsmacht en een intact concurrentievoordeel heeft?'
+  - - Marks
+    - 'Daag Buffett direct uit: wat is de meest waarschijnlijke manier waarop die moat-claim de komende jaren afbrokkelt?'
+  - - Buffett
+    - Reageer op Marks' weerlegging — verdedig je punt met een specifiek tegenargument, of erken waar hij gelijk heeft.
+  - - Asness
+    - Kijk puur naar de cijfers, los van het verhaal — ondersteunen omzet-, marge- en factordata de groeiclaim, of niet?
+  - - Arnott
+    - Hoeveel van het goede nieuws is al ingeprijsd, en is dat een eerlijke prijs voor de kwaliteit die op tafel ligt?
+  - - Dalio
+    - Welk macro-economisch regime moet aanhouden wil deze case werken, en hoe kwetsbaar is het bedrijf als dat regime kantelt?
+  - - Marks
+    - 'Wissel van invalshoek: waar zit een kans die de markt juist te somber inschat — een asymmetrische bet vóór het bedrijf?'
+  - - Asness
+    - Daag Marks direct uit op die claim: welk specifiek datapunt spreekt die vermeende onderschatting tegen?
+  - - Marks
+    - Reageer op Asness — nuanceer of verdedig je punt met een concreet tegenargument.
+  - - Arnott
+    - Wat is het grootste structurele risico voor de waarderingsmultiple op langere termijn, en hoe realistisch is dat?
+  - - Buffett
+    - 'Definitief oordeel, alles afwegend: is dit een bedrijf dat je tien jaar zou bezitten zonder het te kunnen verkopen? Waarom wel of niet?'
+  - - Dalio
+    - 'Finale macro-inschatting: draagt dit per saldo positief of negatief bij aan een gespreide portefeuille op dit moment?'
+  - - Nico
+    - Vat de hoofdpunten van iedereen samen (één zin per persoon) en geef een eerlijk oordeel — JA, NEE, of een duidelijk genuanceerd standpunt.
+  en:
+  - - Buffett
+    - 'Open the debate with the strongest quality claim: what concrete evidence is there that this business will still have pricing power and an intact moat in ten years?'
+  - - Marks
+    - 'Directly challenge Buffett: what is the most likely way that moat claim erodes over the next few years?'
+  - - Buffett
+    - React to Marks' pushback — defend your point with a specific counter-argument, or concede where he's right.
+  - - Asness
+    - Look purely at the numbers, setting the narrative aside — does the revenue/margin/factor data actually support the growth claim, or not?
+  - - Arnott
+    - How much of the good news is already priced in, and is that a fair price for the quality on offer?
+  - - Dalio
+    - What macro regime does this case need to hold, and how exposed is the business if that regime shifts?
+  - - Marks
+    - 'Switch angle: where is the market being too pessimistic — an asymmetric bet in the company''s favour?'
+  - - Asness
+    - Directly challenge Marks on that claim: what specific data point contradicts that supposed mispricing?
+  - - Marks
+    - React to Asness — refine or defend your point with a concrete counter-argument.
+  - - Arnott
+    - What is the biggest structural risk to the valuation multiple over the long run, and how realistic is it?
+  - - Buffett
+    - 'Final view, weighing everything said: is this a business you would own for ten years with no ability to sell? Why or why not?'
+  - - Dalio
+    - 'Final macro read: does this add or subtract from a diversified portfolio on net, right now?'
+  - - Nico
+    - Summarise each person's key point (one sentence each) then give an honest verdict — YES, NO, or a clearly qualified stance.

@@ -1,0 +1,95 @@
+# ── Azure ML ──────────────────────────────────────────────────────────────────
+subscription_id: "517ee652-f329-466e-bbb0-bc7f326b7205"
+client_id: "4ee28b52-47cb-49af-a933-1876782e7ea6"
+
+development:
+  datalake_name: "weavbaostoredls01"
+  resource_group_name: "we-avb-ds-o-ov-mlw-rg"
+  workspace_name: "we-avb-ds-ov-mlw-o-mlw"
+
+acceptance:
+  datalake_name: "weavbaastoredls01"
+  resource_group_name: "we-avb-ds-a-ov-mlw-rg"
+  workspace_name: "we-avb-ds-ov-mlw-a-mlw"
+
+production:
+  datalake_name: "weavbapstoredls01"
+  resource_group_name: "we-avb-ds-p-ov-mlw-rg"
+  workspace_name: "we-avb-ds-ov-mlw-p-mlw"
+
+# ── Equities RAG settings ───────────────────────────────────────────────────────
+equities:
+  # Data Lake
+  data_layer: "silver"
+  index_path: "LLM/indices/equities-research"   # where uploaded documents are written
+  cache_backup_path: "SR/LLM/equities-cache/documents_backup.db"   # scheduler's periodic SQLite cache backup
+  log_backup_path: "SR/LLM/equities-cache/equities_frontend.log"   # scheduler's periodic log-file backup
+
+  # Azure AI Search
+  index_name: "equities-research"
+
+  # ingestion config (the vectorization pipeline reads this file)
+  config_file: "equities_frontend/configs/config.yaml"
+
+  # accepted upload types (single + inside zips)
+  allowed_extensions:
+    - ".pdf"
+    - ".xlsx"
+    - ".docx"
+    - ".pptx"
+    - ".md"
+    - ".txt"
+
+  # retrieval / chat
+  chat_deployment: "gpt-5.6-sol"
+  embedding_deployment: "text-embedding-3-large"
+  top_k: 20          # chunks retrieved per query
+  max_answer_tokens: 12000
+
+  # Azure AI Foundry / Azure AI Search endpoints
+  foundry_endpoint: "https://we-avb-ds-p-ai-oai.openai.azure.com/"
+  foundry_api_version: "2025-03-01-preview"
+  foundry_embedding_deployment: "text-embedding-3-large"
+  search_endpoint: "https://we-avb-ds-p-ai-ais.search.windows.net"
+  datalake_account_name: "weavbapstoredls01"
+
+  # Companies page: region / GICS sector classification
+  company_classification:
+    # Fixed lists the LLM must classify into -- keeps the Companies page's
+    # Region/Sector filters clean and free of near-duplicate categories.
+    allowed_regions:
+      - "North America"
+      - "Europe"
+      - "United Kingdom"
+      - "Japan"
+      - "Asia Pacific (ex-Japan)"
+      - "Emerging Markets"
+      - "Other"
+    allowed_gics_sectors:
+      - "Communication Services"
+      - "Consumer Discretionary"
+      - "Consumer Staples"
+      - "Energy"
+      - "Financials"
+      - "Health Care"
+      - "Industrials"
+      - "Information Technology"
+      - "Materials"
+      - "Real Estate"
+      - "Utilities"
+    batch_size: 40      # tickers classified per LLM call
+
+  # DCF Model Builder
+  dcf:
+    default_discount_rate: 0.09
+    default_terminal_growth_rate: 0.025
+    default_projection_years: 5
+    default_tax_rate: 0.21
+    min_discount_rate: 0.03
+    max_discount_rate: 0.20
+    min_terminal_growth_rate: 0.0
+    max_terminal_growth_rate: 0.05
+    min_projection_years: 3
+    max_projection_years: 10
+    max_bulk_records: 2000      # hard cap for retrieve_financial_model_bulk
+    research_top_k: 15          # top_k for the LLM-suggestion retrieval

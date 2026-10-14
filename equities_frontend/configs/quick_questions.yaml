@@ -1,0 +1,168 @@
+# Pre-loaded question templates for the chat page.
+#
+# Fields:
+#   label            — button label shown in the UI
+#   requires_company — if true, warn user when no company ticker is selected
+#   prompt           — question text (single-pass); use {company} as a placeholder
+#   mode             — "sequential_parts" runs each part as a separate RAG query,
+#                      streaming answers one lens at a time
+#   parts            — list of {label, search_hint, prompt} for sequential_parts
+#   search_hint      — short keyword phrase used for Azure Search retrieval;
+#                      kept separate from the full roleplay prompt so BM25 works well
+
+- label: "12 Investment Lenses"
+  requires_company: true
+  mode: sequential_parts
+  word_limit: 100
+  parts:
+    - label: "Former CFO (industry peer)"
+      search_hint: "capital allocation balance sheet cash conversion unit economics leverage debt"
+      prompt: |
+        As the former CFO of a company in the same industry as {company}, what 3 questions
+        about {company}'s capital allocation, unit economics, cash conversion cycle, and
+        balance sheet quality are most critical before investing significant personal wealth?
+        Why are these underappreciated by generalist investors?
+        Describe what strong versus weak answers look like for {company}.
+
+    - label: "Head of Sales (competitor)"
+      search_hint: "revenue growth market share pricing competition win rate customer acquisition"
+      prompt: |
+        As head of sales at a direct competitor to {company}, what 3 questions about
+        {company}'s pricing strategy, customer win/loss dynamics, and go-to-market
+        weaknesses are most revealing about its long-term competitive position?
+        Why do investors underweight these signals?
+        Describe what strong versus weak answers look like for {company}.
+
+    - label: "Class action attorney"
+      search_hint: "litigation risk regulatory disclosure governance accounting related-party"
+      prompt: |
+        As a securities class action attorney, what 3 questions about {company}'s
+        regulatory disclosures, accounting practices, related-party transactions,
+        and litigation exposure would you investigate before investing in {company}?
+        Why is legal risk systematically underpriced by equity markets?
+        Describe what strong versus weak answers look like for {company}.
+
+    - label: "Account manager (company employee)"
+      search_hint: "customer retention churn net revenue retention product adoption growth"
+      prompt: |
+        As a senior account manager at {company}, what 3 questions about {company}'s
+        customer health scores, expansion rates, churn drivers, and product stickiness
+        would you want your CFO to answer before investing your personal savings in {company}?
+        Why are these customer signals underappreciated by outside analysts?
+        Describe what strong versus weak answers look like.
+
+    - label: "Key supplier"
+      search_hint: "supply chain procurement operations logistics concentration risk reliability"
+      prompt: |
+        As a key supplier to {company}, what 3 questions about {company}'s procurement
+        practices, payment terms, supply chain concentration risk, and operational
+        reliability reveal its true business quality before investing?
+        Why is supplier-side intelligence underappreciated by equity investors?
+        Describe what strong versus weak answers look like for {company}.
+
+    - label: "Cultural anthropologist (zeitgeist)"
+      search_hint: "brand perception ESG consumer trends reputation sustainability positioning"
+      prompt: |
+        As a cultural anthropologist studying brand perception and generational shifts,
+        what 3 questions about {company}'s cultural relevance, brand trajectory, and
+        alignment with emerging consumer values are critical before investing in {company}?
+        Why are cultural and zeitgeist dynamics underappreciated by financial analysts?
+        Describe what strong versus weak answers look like for {company}.
+
+    - label: "Regulatory agent"
+      search_hint: "regulatory compliance legal risk government policy licensing approval"
+      prompt: |
+        As a regulatory agent overseeing {company}'s sector, what 3 questions about
+        {company}'s compliance posture, regulatory risk exposure, licensing dependencies,
+        and political headwinds are most important before investing in {company}?
+        Why is regulatory risk systematically underpriced in equity valuations?
+        Describe what strong versus weak answers look like for {company}.
+
+    - label: "Supply chain software provider"
+      search_hint: "operational efficiency technology infrastructure inventory management scalability"
+      prompt: |
+        As a supply chain software provider serving companies in {company}'s sector,
+        what 3 questions about {company}'s operational efficiency, technology stack,
+        inventory management, and logistics resilience reveal its true operational quality?
+        Why are these operational signals underappreciated by investors?
+        Describe what strong versus weak answers look like for {company}.
+
+    - label: "Core customer (existing)"
+      search_hint: "product quality pricing customer satisfaction switching costs loyalty"
+      prompt: |
+        As an existing core customer of {company} who depends on its product or service,
+        what 3 questions about product quality, switching costs, pricing trajectory,
+        and support reliability reveal {company}'s true customer moat before investing?
+        Why do sell-side analysts underweight the existing customer perspective?
+        Describe what strong versus weak answers look like for {company}.
+
+    - label: "Prospective customer (TAM expansion)"
+      search_hint: "total addressable market new customers expansion growth pipeline adoption"
+      prompt: |
+        As a potential new customer that {company} is targeting to expand its addressable
+        market, what 3 questions about adoption barriers, product gaps, sales cycle
+        friction, and pricing reveal whether {company}'s growth thesis is credible?
+        Why is the non-customer perspective underappreciated by equity investors?
+        Describe what strong versus weak answers look like for {company}.
+
+    - label: "Head of Strategy (top competitor)"
+      search_hint: "competitive advantage moat strategy market position vulnerability"
+      prompt: |
+        As head of strategy at {company}'s number one competitor, what 3 questions about
+        {company}'s strategic vulnerabilities, moat durability, and competitive blind spots
+        are most revealing before an investor commits capital to {company}?
+        Why is competitive intelligence underweighted in standard equity research?
+        Describe what strong versus weak answers look like.
+
+    - label: "Head of Sales (company)"
+      search_hint: "revenue pipeline sales growth margins guidance quota attainment"
+      prompt: |
+        As head of sales at {company} itself, what 3 questions about pipeline quality,
+        deal velocity, quota attainment, and the durability of {company}'s revenue growth
+        would you want your board to answer before investing your own money in {company}?
+        Why are internal sales signals underappreciated by outside investors?
+        Describe what strong versus weak answers look like.
+
+- label: "Bull vs Bear case"
+  requires_company: true
+  prompt: |
+    Based on all available research and financial data for {company},
+    lay out the strongest bull case and the strongest bear case.
+    Be specific with numbers, timelines, and catalysts. End with your
+    assessment of which factors the market appears to be underweighting.
+
+- label: "Consensus estimates summary"
+  requires_company: true
+  prompt: |
+    Summarise the consensus revenue, EBIT, and EPS estimates for {company}
+    across all available periods. Note where estimates have been revised
+    up or down recently and highlight any notable disagreements between brokers.
+
+- label: "Recent analyst sentiment"
+  requires_company: true
+  prompt: |
+    What is the prevailing analyst sentiment on {company}?
+    Summarise the bull and bear cases as expressed in the most recent broker notes,
+    and note any rating or price-target changes.
+
+- label: "Revenue drivers & margin analysis"
+  requires_company: true
+  prompt: |
+    Based on available documents, what are the key revenue drivers and
+    margin dynamics for {company}? Which segments or products carry the
+    highest growth and margin, and what are the main risks to the margin outlook?
+
+- label: "Key risks overview"
+  requires_company: false
+  prompt: |
+    What are the most significant risks mentioned across the available research?
+    Group them by category (macro, competitive, regulatory, execution) and note
+    which risks appear most frequently across different sources.
+
+- label: "Management credibility check"
+  requires_company: true
+  prompt: |
+    Looking across all available documents for {company}, assess management
+    credibility: have prior guidance statements been met? Are there recurring
+    themes in analyst concerns about execution or communication? Cite specific
+    examples where possible.
