@@ -1,0 +1,198 @@
+# Central configuration for the Bloomberg portfolio analytics dashboard.
+#
+# All dataset- and user-specific values live here so that a data or naming
+# change only requires editing this file, never the Python code (a.s.r. coding
+# standard section 7 "No hard-coded values").
+
+# Bloomberg factor model column names.
+factor_names:
+  # EU model factors shown in charts (most relevant for European equity portfolios).
+  eu:
+    - EU Beta
+    - EU Momentum
+    - EU Size
+    - EU Valuation
+    - EU Growth
+    - EU Profit
+    - EU ResVol
+    - EU Leverage
+    - EU DivYld
+    - EU EarnYield
+    - EU EarnVariab
+    - EU Liquidity
+    - EU LongRev
+    - EU Mid-Cap
+    - Currency
+  # All individual factor columns present in Bloomberg factor attribution exports.
+  all:
+    - Currency
+    - Beta
+    - DivYld
+    - EarnVariab
+    - EarnYield
+    - Growth
+    - Leverage
+    - Liquidity
+    - LtReversal
+    - MidCap
+    - Momentum
+    - Profit
+    - ResidualVol
+    - Size
+    - Style
+    - Valuation
+    - EU Beta
+    - EU DivYld
+    - EU EarnYield
+    - EU Growth
+    - EU Leverage
+    - EU Liquidity
+    - EU LongRev
+    - EU Mid-Cap
+    - EU Momentum
+    - EU Profit
+    - EU ResVol
+    - EU Size
+    - EU Valuation
+    - EU EarnVariab
+
+# Style/systematic risk factor categories in Bloomberg's European risk model.
+style_factor_categories:
+  - Beta
+  - Size
+  - Valuation
+  - Growth
+  - DivYld
+  - EarnYield
+  - EarnVariab
+  - Leverage
+  - Liquidity
+  - LtReversal
+  - MidCap
+  - Momentum
+  - Profit
+  - ResidualVol
+  - Variability
+
+# Azure Data Lake (medallion) settings for the incremental refresh pipeline.
+datalake:
+  # Managed-identity client id is read from this environment variable on the
+  # a.s.r. Azure ML compute (set automatically in that environment).
+  client_id_env_var: DEFAULT_IDENTITY_CLIENT_ID
+  # Storage account per environment; `default_environment` selects which account
+  # the dashboard uses, overridable through the DATALAKE_ENV environment variable.
+  environment_env_var: DATALAKE_ENV
+  default_environment: production
+  accounts:
+    development: weavbaostoredls01
+    acceptance: weavbaastoredls01
+    production: weavbapstoredls01
+  # Per-layer environment override. Each medallion layer can be sourced from a
+  # different storage account: the raw landing zone is read from production, while
+  # the promoted bronze/silver layers are written to development. Any layer not
+  # listed here falls back to `default_environment` (overridable via DATALAKE_ENV).
+  layer_environments:
+    landing: production
+    bronze: production
+    silver: production
+  # Container (filesystem) names for the three medallion layers.
+  containers:
+    landing: landingzone
+    bronze: bronze
+    silver: silver
+  # Root folder inside every container where the EQT equities feed lives.
+  root: EQT
+  # Bronze and silver arrange promoted files under this sub-folder before the
+  # portfolio code, giving `EQT/portfolio/<CODE>/YYYY/MM/DD`. The landing zone
+  # stays flat (`EQT/<file>`), so this only applies to the promoted layers.
+  bronze_silver_subfolder: portfolio
+  # Per-portfolio aggregation folder that stacks every date's silver report
+  # for one component into a single parquet, giving
+  # `EQT/portfolio/<CODE>/aggregation/<slug>__<key>.parquet`. Read by the
+  # dashboard so the overview/trends load one file per component instead of
+  # one file per date.
+  aggregation_subfolder: aggregation
+  # A landing-zone status file must contain this marker for its data file to be
+  # promoted; data files without a sibling status file are always promoted.
+  status_success_marker: successfully generated
+  status_suffix: .status.txt
+  # Token that separates the report name from the run date in every file name.
+  data_suffix: EQT100
+  # File extensions that hold parseable report data.
+  data_extensions:
+    - csv
+    - xlsx
+
+# Streamlit dashboard presentation settings.
+dashboard:
+  # Mapping from Bloomberg portfolio-name substrings to a canonical fund-family
+  # label. AEIIAEF appears as "aeiieaf" (letters transposed) in some sub-portfolio
+  # names, so both spellings map to the same family.
+  family_map:
+    aeiiaef: AEIIAEF
+    aeiieaf: AEIIAEF
+    adaaf: ADAAF
+    adwaf: ADWAF
+
+# AUM per alpha model portfolio used for bps calculation in the Transacties tab.
+# Values are in EUR; set to 0 (or remove) to fall back to EUR amounts in the chart.
+alpha_aum_eur:
+  EQEU ALPHA: 0
+  EQUS ALPHA: 0
+  EQWW ALPHA: 0
+
+# Portfolio optimizer settings.
+optimizer:
+  factor_suffixes:
+    - Peer Rank
+  weight_column_guesses:
+    - Total Weight
+    - Abs Weight
+    - Absolute Weight
+    - Weight
+    - Core Weight
+    - Active Weight
+    - AbsWeight
+    - Wt
+    - Weight (%)
+  identifier_column_guesses:
+    - SEDOL
+    - ISIN
+    - Company
+    - Company Name
+    - Name
+    - Security Name
+    - Bloomberg ID
+    - BBG ID
+  gics_sector_guesses:
+    - GICS Sector
+    - GICS Sector Name
+    - Sector
+  gics_industry_guesses:
+    - GICS Industry
+    - GICS Industry Name
+    - Industry
+  region_country_guesses:
+    - Country
+    - Region
+    - Domicile
+    - Country of Domicile
+    - Country of Risk
+    - Geographic Region
+  currency_guesses:
+    - Currency
+    - Crncy
+    - CCY
+    - FX
+  reserved_sheets:
+    - alpha
+    - core
+    - net
+    - summary
+    - info
+    - metadata
+  default_max_abs_weight: 0.10
+  default_max_active_weight: 0.05
+  default_regularization_lambda: 100
+  default_top_n_contributors: 20
+  default_db_path: data/optimizer_datasets.db

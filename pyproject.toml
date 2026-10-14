@@ -110,7 +110,7 @@ exclude = [
 force-exclude = true
 
 [tool.ruff.lint.isort]
-known-first-party = ["admin", "auth", "chat", "companies", "dcf", "index", "investment_case", "upload", "database", "search", "helpers", "vectorization", "avb_search", "avb_core"]
+known-first-party = ["admin", "auth", "chat", "companies", "dcf", "index", "investment_case", "kpi_monitor", "upload", "database", "search", "helpers", "vectorization", "avb_search", "avb_core"]
 
 [tool.isort]
 profile           = "black"

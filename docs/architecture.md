@@ -21,6 +21,7 @@ equities_rag_pipeline/                  repository root
 │   ├── companies/                      company overview and detail pages
 │   ├── dcf/                            discounted cash flow model builder
 │   ├── index/                          index browser page
+│   ├── kpi_monitor/                    KPI Monitor tab: LLM review of a company's model against its transcripts
 │   ├── investment_case/                investment case builder
 │   ├── portfolio_dashboard_view.py     hosts the colleague's Portfolio Dashboard as a page
 │   ├── portfolio_dashboard/            vendored Bloomberg portfolio-analytics dashboard (unmodified)
